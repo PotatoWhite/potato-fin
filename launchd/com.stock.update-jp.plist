@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.stock.update-jp</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/user/Documents/invest/run_update.sh</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>16</integer>
+        <key>Minute</key>
+        <integer>5</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/user/Library/Logs/stock-monitor/launchd-jp.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/user/Library/Logs/stock-monitor/launchd-jp-err.log</string>
+    <key>WorkingDirectory</key>
+    <string>/Users/user/Documents/invest</string>
+</dict>
+</plist>

@@ -1,0 +1,477 @@
+{
+  "date": "2026-02-13",
+  "saved_at": "2026-02-13T00:12:04",
+  "tickers": {
+    "035420.KS": {
+      "score": 0.0,
+      "count": 0,
+      "negative": 0,
+      "positive": 0,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "",
+      "top_positive": "",
+      "articles": []
+    },
+    "1377.T": {
+      "score": 0.0,
+      "count": 0,
+      "negative": 0,
+      "positive": 0,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "",
+      "top_positive": "",
+      "articles": []
+    },
+    "195940.KQ": {
+      "score": 0.0,
+      "count": 0,
+      "negative": 0,
+      "positive": 0,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "",
+      "top_positive": "",
+      "articles": []
+    },
+    "429760.KS": {
+      "score": 0.0,
+      "count": 0,
+      "negative": 0,
+      "positive": 0,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "",
+      "top_positive": "",
+      "articles": []
+    },
+    "BAYN.DE": {
+      "score": 0.0,
+      "count": 0,
+      "negative": 0,
+      "positive": 0,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "",
+      "top_positive": "",
+      "articles": []
+    },
+    "BOTZ": {
+      "score": -0.33,
+      "count": 9,
+      "negative": 1,
+      "positive": 1,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "Software Leads AI-Driven Tech Rout - What Next?",
+      "top_positive": "Why Some Consumer Stocks May Be Poised To Outperform",
+      "articles": [
+        {
+          "headline": "Software Leads AI-Driven Tech Rout - What Next?",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "Why Some Consumer Stocks May Be Poised To Outperform",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "Inflection Points: Earning Proof Points",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "Artificial Intelligence Isn't Over-Hyped, It May Be Under-Hyped: A Conversation With Zack Kass",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "A Rocky Rotation",
+          "source": "SeekingAlpha"
+        }
+      ]
+    },
+    "CVX": {
+      "score": 1.23,
+      "count": 62,
+      "negative": 2,
+      "positive": 5,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "HSBC Downgrades Chevron (CVX), JPMorgan Stays Positive",
+      "top_positive": "BP: One Of The Best Turnarounds In Sight",
+      "articles": [
+        {
+          "headline": "BP: One Of The Best Turnarounds In Sight",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "HSBC Downgrades Chevron (CVX), JPMorgan Stays Positive",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "I Said I'd Buy Chevron Over ConocoPhillips in 2026, and Chevron Is Already Up 19% This Year. Is the High-Yield Dividend Stock a Buy Near Its All-Time High?",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Enterprise Products Partners vs. Chevron: Which High-Yield Energy Stock Will Outperform in 2026?",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Chevron’s Syria Push And Venezuela Talks Test Risk And Valuation",
+          "source": "Yahoo"
+        }
+      ]
+    },
+    "GOOGL": {
+      "score": -3.49,
+      "count": 250,
+      "negative": 25,
+      "positive": 19,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "European Publishers Council files EU antitrust complaint about Google's AI Overviews",
+      "top_positive": "S&P 500, Nasdaq dip with economic data, earnings in focus",
+      "articles": [
+        {
+          "headline": "European Publishers Council files EU antitrust complaint about Google's AI Overviews",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Salesforce Reportedly Trims Workforce, Appoints New Leaders Amid AI Pivot",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "As Amazon ‘Scrambles to Catch Up,’ 1 Analyst Is Jumping Ship on AMZN Stock",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "S&P 500, Nasdaq dip with economic data, earnings in focus",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Stock Market Today, Feb. 10: Microsoft Stock Slips on Melius Downgrade Over AI Spending Risks",
+          "source": "Yahoo"
+        }
+      ]
+    },
+    "MSFT": {
+      "score": -5.0,
+      "count": 250,
+      "negative": 30,
+      "positive": 16,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "As Amazon ‘Scrambles to Catch Up,’ 1 Analyst Is Jumping Ship on AMZN Stock",
+      "top_positive": "Why Oracle Stock Is Jumping Today",
+      "articles": [
+        {
+          "headline": "As Amazon ‘Scrambles to Catch Up,’ 1 Analyst Is Jumping Ship on AMZN Stock",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Stock Market Today, Feb. 10: Microsoft Stock Slips on Melius Downgrade Over AI Spending Risks",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Major Wall Street Firm Issues Warning on Tech Stocks: What It Means for Investors",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Superhuman CEO says AI isn't taking jobs, it's giving every human 100 digital agents",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Google secures EU antitrust approval for $32 billion Wiz acquisition",
+          "source": "Yahoo"
+        }
+      ]
+    },
+    "NVDA": {
+      "score": -1.09,
+      "count": 250,
+      "negative": 12,
+      "positive": 8,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "UBS Downgrades U.S. Information Technology Sector on Software, Capex Risks",
+      "top_positive": "This Super Software Stock Is the Cheapest It Has Ever Been. Time to Swoop in and Buy?",
+      "articles": [
+        {
+          "headline": "UBS Downgrades U.S. Information Technology Sector on Software, Capex Risks",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "This Super Software Stock Is the Cheapest It Has Ever Been. Time to Swoop in and Buy?",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Nvidia: The Risk-Reward Is Skewed Into Q4 (Rating Upgrade)",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "NVIDIA Partnerships Anchor Long Term Industrial And Scientific AI Demand Potential",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Analyst Sentiment on Arista Networks (ANET) Remains Strong Ahead of Fiscal Q4 2025 Results",
+          "source": "Yahoo"
+        }
+      ]
+    },
+    "PLTR": {
+      "score": -0.23,
+      "count": 155,
+      "negative": 19,
+      "positive": 19,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "High Growth Tech Stocks In The US February 2026",
+      "top_positive": "Palantir (PLTR) Slides 20%, but Analyst Upgrade Signals Fresh Optimism",
+      "articles": [
+        {
+          "headline": "High Growth Tech Stocks In The US February 2026",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "US software stocks tumble sparks concerns that AI trade is reshaping markets",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Palantir (PLTR) Slides 20%, but Analyst Upgrade Signals Fresh Optimism",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Software Slump Resumes, Bitcoin Plunges To $66,000: What's Moving Markets Wednesday?",
+          "source": "Benzinga"
+        },
+        {
+          "headline": "Palantir Extends Longtime Data Partnership With Airbus",
+          "source": "Yahoo"
+        }
+      ]
+    },
+    "QCOM": {
+      "score": 0.55,
+      "count": 60,
+      "negative": 4,
+      "positive": 7,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "QUALCOMM's (NASDAQ:QCOM) Soft Earnings Are Actually Better Than They Appear",
+      "top_positive": "Under Armour cut to Sell, Snap upgraded: Wall Street's top analyst calls",
+      "articles": [
+        {
+          "headline": "QUALCOMM's (NASDAQ:QCOM) Soft Earnings Are Actually Better Than They Appear",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Under Armour cut to Sell, Snap upgraded: Wall Street's top analyst calls",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Here Are Tuesday’s Top Wall Street Analyst Research Calls: Booking Holdings, On Semi, Palantir Technologies, Snap, Spotify, Qualcomm, Vistra Corp., and More",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "6 Chip Stocks Set to Benefit Most From Big Tech Tariff Exemption",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "TSMC Stock Is on a Roll as Chip Sales Surge. This Trump Tariff News Could Drive It Higher.",
+          "source": "Yahoo"
+        }
+      ]
+    },
+    "SLV": {
+      "score": 0.34,
+      "count": 33,
+      "negative": 2,
+      "positive": 3,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "Shares of precious metal stocks are trading higher amid a rise in gold and silver. The commodity may be rebounding after last week's selloff.",
+      "top_positive": "Precious Metals: Bullish Thesis Warrants Buying The Dip",
+      "articles": [
+        {
+          "headline": "Precious Metals: Bullish Thesis Warrants Buying The Dip",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "Shares of precious metal stocks are trading higher amid a rise in gold and silver. The commodity may be rebounding after last week's selloff.",
+          "source": "Benzinga"
+        },
+        {
+          "headline": "VanEck Gold Miners ETF Appears To Have Peaked",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "The Full Effects Of Tariffs To Start Showing Up In January CPI Report",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "Don't Panic As We Clear Speculative Excess In Crypto, Metals, And Tech",
+          "source": "SeekingAlpha"
+        }
+      ]
+    },
+    "TSLA": {
+      "score": -2.19,
+      "count": 237,
+      "negative": 13,
+      "positive": 3,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "Trump Administration Seeks To Bypass Judges In Federal Employee Terminations — 'Free Reign,' Says Union",
+      "top_positive": "Baron Partners Fund Trimmed Tesla (TSLA) Despite Increased Confidence",
+      "articles": [
+        {
+          "headline": "Trump Administration Seeks To Bypass Judges In Federal Employee Terminations — 'Free Reign,' Says Union",
+          "source": "Benzinga"
+        },
+        {
+          "headline": "BYD Vs. Trump: Why Tesla, Ford And GM Are Watching This Lawsuit Closely",
+          "source": "Benzinga"
+        },
+        {
+          "headline": "Nio Recalls 246K EVs For 'Screen Blackouts' As Firm Hits First-Ever Profit Milestone",
+          "source": "Benzinga"
+        },
+        {
+          "headline": "Odds Trump Is Forced To Refund Tariffs Drop Sharply As Supreme Court Justice Warns Of Legal Complexity",
+          "source": "Benzinga"
+        },
+        {
+          "headline": "Baron Partners Fund Trimmed Tesla (TSLA) Despite Increased Confidence",
+          "source": "Yahoo"
+        }
+      ]
+    },
+    "UNH": {
+      "score": -0.32,
+      "count": 37,
+      "negative": 5,
+      "positive": 3,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "UnitedHealth Faces Regulatory Pressure As Probes Test Perceived Undervaluation",
+      "top_positive": "UnitedHealth Group Incorporated (UNH) Strengthens Healthcare Platform Through Optum Expansion",
+      "articles": [
+        {
+          "headline": "UnitedHealth Faces Regulatory Pressure As Probes Test Perceived Undervaluation",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "UnitedHealth Group Incorporated (UNH) Strengthens Healthcare Platform Through Optum Expansion",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Mizuho Lowers UnitedHealth Group Incorporated (UNH) Target to $350, Maintains Outperform Rating",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Humana Stock Falls on Disappointing Earnings Forecast",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Molina Healthcare Stock Notches Lowest Close in Six Years. Why Its Earnings Outlook Is So Bleak.",
+          "source": "Yahoo"
+        }
+      ]
+    },
+    "WRB": {
+      "score": 0.0,
+      "count": 6,
+      "negative": 0,
+      "positive": 0,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "",
+      "top_positive": "",
+      "articles": [
+        {
+          "headline": "W. R. Berkley Corporation (WRB) Presents at Bank of America Financial Services Conference 2026 Transcript",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "A Look At W. R. Berkley (WRB) Valuation After Recent Mixed Share Returns",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Is It Time To Reassess W. R. Berkley (WRB) After Its Strong Multi Year Share Price Run",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "CNA Financial Q4 Earnings & Revenues Miss Estimates, Dividend Raised",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "W. R. Berkley Corporation (WRB) Presents at UBS Financial Services Conference 2026 Transcript",
+          "source": "SeekingAlpha"
+        }
+      ]
+    },
+    "XOM": {
+      "score": 0.96,
+      "count": 60,
+      "negative": 3,
+      "positive": 3,
+      "scandal": false,
+      "scandal_keywords": [],
+      "top_negative": "Shell Plc downgraded after soft trading update",
+      "top_positive": "TotalEnergies Slashes Buyback, Boosts Savings Target as Lower Prices Hit Profit",
+      "articles": [
+        {
+          "headline": "TotalEnergies Slashes Buyback, Boosts Savings Target as Lower Prices Hit Profit",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "BP: One Of The Best Turnarounds In Sight",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "XLE: Energy Stocks Remain A Strong Buy Long Term (Technical Analysis)",
+          "source": "SeekingAlpha"
+        },
+        {
+          "headline": "Shell Plc downgraded after soft trading update",
+          "source": "Yahoo"
+        },
+        {
+          "headline": "Low Volatility ETFs to Watch Amid Major Tech Sell-Off Over AI Panic",
+          "source": "Yahoo"
+        }
+      ]
+    }
+  },
+  "_market": {
+    "score": -2.45,
+    "count": 100,
+    "scandal": false,
+    "articles": [
+      {
+        "headline": "It’s still a ‘low fire’ jobs market. Jobless claims stay low and unemployment falls early in the new year.",
+        "source": "MarketWatch"
+      },
+      {
+        "headline": "Crocs’s stock soars, as sales return to growth over the holidays on strong overseas demand",
+        "source": "MarketWatch"
+      },
+      {
+        "headline": "Nvidia’s Jensen Huang loves this software maker that just issued a crippling profit warning",
+        "source": "MarketWatch"
+      },
+      {
+        "headline": "China is hacking the tariff system by investing in U.S. firms — while American taxpayers foot the bill",
+        "source": "MarketWatch"
+      },
+      {
+        "headline": "One of Europe’s few growth stocks falters on disappointing outlook",
+        "source": "MarketWatch"
+      }
+    ]
+  },
+  "_summary": {
+    "avg_score": -0.56,
+    "scandal_tickers": [],
+    "total_tickers": 17
+  }
+}

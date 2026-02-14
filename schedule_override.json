@@ -1,0 +1,40 @@
+{
+  "_updated": "2026-02-13",
+  "_source": "보고서/2026-02-13_0251.md",
+  "overrides": [
+    {
+      "original_date": "2026-02-11",
+      "new_date": "2026-02-13",
+      "new_time": "22:30",
+      "name": "1월 CPI (소비자물가지수)",
+      "impact": "HIGH",
+      "reason": "정부 셧다운(4일)으로 BLS 발표 2일 지연 (bls.gov 확인). 결과: +2.9% YoY (컨센 +2.5% 대폭 상회)",
+      "status": "completed"
+    },
+    {
+      "original_date": "2026-02-13",
+      "new_date": "2026-02-27",
+      "new_time": "22:30",
+      "name": "1월 PPI (생산자물가지수)",
+      "impact": "HIGH",
+      "reason": "정부 셧다운으로 BLS 발표 연기 (bls.gov/schedule 확인)"
+    }
+  ],
+  "additions": [
+    {
+      "date": "2026-02-20",
+      "time": "미정",
+      "name": "대법원 IEEPA 관세 합헌성 판결",
+      "impact": "HIGH",
+      "reason": "IEEPA 관세 위헌 판결 예상. 하급심 모두 위헌, 법무장관도 위헌 의견. $133B+ 환급 가능. 시장 전반 영향"
+    },
+    {
+      "date": "2026-02-20",
+      "time": "22:30",
+      "name": "Q4 2025 GDP 속보치 (Advance Estimate)",
+      "impact": "HIGH",
+      "reason": "Q3 +4.4% 이후 Q4 성장률 확인. 경기 방향 핵심 지표"
+    }
+  ],
+  "cancellations": []
+}

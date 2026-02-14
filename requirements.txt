@@ -1,0 +1,7 @@
+pandas
+yfinance
+openpyxl
+python-dateutil
+numpy
+mcp[cli]
+finnhub-python

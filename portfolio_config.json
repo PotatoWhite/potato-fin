@@ -1,0 +1,59 @@
+{
+  "cash": {
+    "USD": 45624.13,
+    "KRW": 0,
+    "JPY": 0,
+    "EUR": 0
+  },
+  "crypto": {
+    "BTC": {
+      "amount_krw": 5000000,
+      "note": "비트코인 약 500만원 보유"
+    },
+    "ETH": {
+      "amount_krw": 5000000,
+      "note": "이더리움 약 500만원 보유"
+    }
+  },
+  "risk_profile": {
+    "max_single_stock_pct": 20,
+    "max_sector_pct": 40,
+    "min_cash_pct": 5,
+    "target_cash_pct": 10
+  },
+  "cash_deploy_rules": {
+    "trigger_1": {
+      "condition": "S&P500 고점 대비 -10% (조정장)",
+      "action": "현금의 50% 투입",
+      "target": "MA50 터치 종목 우선, 인덱스 ETF(429760.KS) + 종합점수 상위 종목"
+    },
+    "trigger_2": {
+      "condition": "S&P500 고점 대비 -20% (폭락장)",
+      "action": "나머지 현금 전량 투입 (min_cash_pct 5% 유지)",
+      "target": "MA200 터치 종목, 펀더멘탈 건전 + 기관 매집 확인된 종목"
+    },
+    "split_buy_rule": {
+      "desc": "개별 종목 신규 진입 시 3분할 매수",
+      "buy_1": "MA20 터치 → 목표 수량의 33% (정찰대)",
+      "buy_2": "MA50 터치 → 목표 수량의 33% (본격 진입)",
+      "buy_3": "MA200 터치 → 목표 수량의 34% (주력 전환)"
+    },
+    "note": "ref/미국주식에디 세미나 참조. 시장 급락은 공포가 아닌 바겐세일."
+  },
+  "annual_roadmap_2026": {
+    "may": {
+      "event": "Fed 의장 교체 (Powell→Warsh, 5/15)",
+      "risk": "불확실성 & 국채 금리 발작, 정책 전환 혼란",
+      "opportunity": "유동성 파티 개막 — 신임 의장 시장 친화 정책 시 전례 없는 랠리",
+      "action": "4월부터 현금 비중 상향, 5월 이후 결과 확인 후 투입"
+    },
+    "nov": {
+      "event": "중간선거 (11/3)",
+      "risk": "레임덕 & 정책 마비, 선거 불확실성",
+      "opportunity": "불확실성 해소 후 대반등, 연말 랠리",
+      "action": "10월 현금 확보, 선거 후 결과별 시나리오 대응"
+    }
+  },
+  "notes": "매매 후 수동 업데이트 필요. cash 통화별 잔고, risk_profile은 리밸런싱 기준. cash_deploy_rules는 시장 급락 시 현금 투입 규칙. annual_roadmap은 2026 연간 핵심 이벤트.",
+  "_updated": "2026-02-14"
+}
