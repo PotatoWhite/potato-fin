@@ -4,21 +4,18 @@
 
 set -euo pipefail
 
-STOCK_DIR="/Users/user/Documents/invest"
+# 중첩 세션 방지 해제 (Claude Code 내부에서 실행 시)
+unset CLAUDECODE 2>/dev/null || true
+
+STOCK_DIR="/home/bravopotato/Spaces/finspace/potato-fin"
 PYTHON="$STOCK_DIR/.venv/bin/python3"
-CLAUDE="/Users/user/.local/bin/claude"
-LOG_DIR="$HOME/Library/Logs/stock-monitor"
+CLAUDE="/home/linuxbrew/.linuxbrew/bin/claude"
+LOG_DIR="$HOME/logs/stock-monitor"
 
 mkdir -p "$LOG_DIR"
 
 LOG_FILE="$LOG_DIR/report_$(date +%Y%m%d_%H%M%S).log"
 
-# 주말 체크 (토=6, 일=7)
-DOW=$(date +%u)
-if [ "$DOW" -ge 6 ]; then
-    echo "$(date): 주말이므로 보고서 생성 건너뜀 (요일=$DOW)" >> "$LOG_FILE"
-    exit 0
-fi
 
 echo "$(date): 보고서 생성 시작" >> "$LOG_FILE"
 
@@ -48,7 +45,24 @@ echo "$(date): 현금 설정: $CASH_DATA" >> "$LOG_FILE"
 PREV_REPORT=$(ls -1 "$STOCK_DIR/보고서/"*.md 2>/dev/null | tail -1 || echo "")
 echo "$(date): 직전 보고서: $PREV_REPORT" >> "$LOG_FILE"
 
-# 5.5단계: 메르 블로그 RSS 피드 (최근 3일 글 제목 수집)
+# 5.1단계: Tier 1 감시 데이터 구조화 요약 (장전 브리핑 + 장중 모니터링 결과)
+echo "$(date): Tier 1 데이터 로드" >> "$LOG_FILE"
+REPORT_DATE_FOR_MONITOR=$(TZ=Asia/Seoul date +%Y-%m-%d)
+MONITOR_SUMMARY=$("$PYTHON" -c "
+from news_monitor import format_daily_briefing
+print(format_daily_briefing('$REPORT_DATE_FOR_MONITOR'))
+" 2>/dev/null || echo "Tier 1 데이터 로드 실패")
+echo "$(date): Tier 1 요약: ${#MONITOR_SUMMARY}자" >> "$LOG_FILE"
+
+# 5.5단계: 투자 테제 로드
+echo "$(date): 투자 테제 로드" >> "$LOG_FILE"
+THESIS_SUMMARY=$("$PYTHON" -c "
+from update_thesis import format_thesis_summary
+print(format_thesis_summary())
+" 2>/dev/null || echo "투자 테제 없음")
+echo "$(date): 테제: ${#THESIS_SUMMARY}자" >> "$LOG_FILE"
+
+# 5.6단계: 메르 블로그 RSS 피드 (최근 3일 글 제목 수집)
 echo "$(date): 메르 블로그 RSS 수집" >> "$LOG_FILE"
 MER_BLOG=$("$PYTHON" -c "
 import urllib.request, xml.etree.ElementTree as ET
@@ -265,6 +279,19 @@ schedule_override.json 파일을 업데이트하라.
 메르 블로그 원문을 인용하지 말고 독자적으로 조사한 내용만 작성할 것.
 $MER_BLOG
 
+=== Tier 1 장중 감시 누적 데이터 ===
+아래는 news_monitor.py가 30분 간격으로 수집한 오늘의 누적 데이터이다.
+가격 이상(±3%), 거래량 스파이크, 긴급 뉴스, 경제지표 발표 결과가 포함되어 있다.
+이 데이터를 보고서 분석에 반영하되, WebSearch로 교차검증하라.
+$MONITOR_SUMMARY
+
+=== 투자 테제 (이전 보고서 누적 판단) ===
+이 테제는 이전 보고서들의 예측/판단을 누적 추적한 것이다.
+- 확신도(conviction)가 7+ 종목은 근거 없이 판단 변경 금지
+- accuracy의 편향(bias)을 발견하면 예상 종가를 보정하라
+- 이전 판단과 달라질 경우 변경 사유를 명시하라
+$THESIS_SUMMARY
+
 === 기술분석 ===
 $TECH_DATA" \
     --allowedTools "WebSearch,WebFetch,Bash,Write,Read,Edit,Glob,Grep" \
@@ -276,7 +303,35 @@ EXIT_CODE=$?
 
 echo "$(date): 보고서 생성 완료 (exit=$EXIT_CODE)" >> "$LOG_FILE"
 
-# 7단계: 경제 지표 일정 기반 추가 보고서 스케줄링
+# 6.5단계: 가격 검증 + 자동 보정
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    echo "$(date): 가격 검증 + 자동 보정" >> "$LOG_FILE"
+    "$PYTHON" "$STOCK_DIR/price_verify.py" "$STOCK_DIR/$REPORT_FILE" --fix >> "$LOG_FILE" 2>&1 || true
+fi
+
+# 7단계: 투자 테제 업데이트
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    echo "$(date): 투자 테제 업데이트" >> "$LOG_FILE"
+    "$PYTHON" "$STOCK_DIR/update_thesis.py" --report "$STOCK_DIR/$REPORT_FILE" >> "$LOG_FILE" 2>&1 || true
+fi
+
+# 8단계: 보고서 검증
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    echo "$(date): 보고서 검증" >> "$LOG_FILE"
+    "$PYTHON" "$STOCK_DIR/validate_report.py" "$STOCK_DIR/$REPORT_FILE" --notify --type us >> "$LOG_FILE" 2>&1 || true
+fi
+
+# 8.5단계: 포트폴리오 스냅샷
+echo "$(date): 포트폴리오 스냅샷" >> "$LOG_FILE"
+"$PYTHON" "$STOCK_DIR/portfolio_tracker.py" --snapshot >> "$LOG_FILE" 2>&1 || true
+
+# 9단계: 텔레그램 알림
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    echo "$(date): 텔레그램 전송" >> "$LOG_FILE"
+    bash "$STOCK_DIR/telegram_notify.sh" "$STOCK_DIR/$REPORT_FILE" "US 보고서" >> "$LOG_FILE" 2>&1 || true
+fi
+
+# 10단계: 경제 지표 일정 기반 추가 보고서 스케줄링
 echo "$(date): 경제 지표 스케줄 업데이트" >> "$LOG_FILE"
 "$PYTHON" "$STOCK_DIR/schedule_reports.py" >> "$LOG_FILE" 2>&1 || true
 

@@ -67,12 +67,17 @@ def is_market_open(market_config, now=None):
 
 
 def send_notification(title, message, sound="Glass"):
-    """macOS 알림 전송"""
-    script = f'''display notification "{message}" with title "{title}" sound name "{sound}"'''
+    """알림 전송 (Linux: notify-send, macOS: osascript)"""
+    import platform
+    logging.info(f"[ALERT] {title}: {message}")
     try:
-        subprocess.run(["osascript", "-e", script], check=True, timeout=10)
+        if platform.system() == "Darwin":
+            script = f'''display notification "{message}" with title "{title}" sound name "{sound}"'''
+            subprocess.run(["osascript", "-e", script], check=True, timeout=10)
+        else:
+            subprocess.run(["notify-send", title, message], check=True, timeout=10)
     except Exception as e:
-        logging.error(f"알림 전송 실패: {e}")
+        logging.warning(f"알림 전송 실패 (로그에 기록됨): {e}")
 
 
 def check_alerts():

@@ -4,21 +4,18 @@
 
 set -euo pipefail
 
-STOCK_DIR="/Users/user/Documents/invest"
+# 중첩 세션 방지 해제 (Claude Code 내부에서 실행 시)
+unset CLAUDECODE 2>/dev/null || true
+
+STOCK_DIR="/home/bravopotato/Spaces/finspace/potato-fin"
 PYTHON="$STOCK_DIR/.venv/bin/python3"
-CLAUDE="/Users/user/.local/bin/claude"
-LOG_DIR="$HOME/Library/Logs/stock-monitor"
+CLAUDE="/home/linuxbrew/.linuxbrew/bin/claude"
+LOG_DIR="$HOME/logs/stock-monitor"
 
 mkdir -p "$LOG_DIR"
 
 LOG_FILE="$LOG_DIR/korea_report_$(date +%Y%m%d_%H%M%S).log"
 
-# 주말 체크 (토=6, 일=7)
-DOW=$(date +%u)
-if [ "$DOW" -ge 6 ]; then
-    echo "$(date): 주말이므로 한국 보고서 생성 건너뜀 (요일=$DOW)" >> "$LOG_FILE"
-    exit 0
-fi
 
 echo "$(date): 한국시장 보고서 생성 시작" >> "$LOG_FILE"
 
@@ -50,6 +47,21 @@ echo "$(date): 직전 한국 보고서: $PREV_REPORT" >> "$LOG_FILE"
 # 6단계: 한국시장 리서치 파일 (전략 참조용)
 KOREA_RESEARCH=$(ls -1 "$STOCK_DIR/한국시장_리서치"*.md 2>/dev/null | tail -1 || echo "")
 echo "$(date): 한국시장 리서치: $KOREA_RESEARCH" >> "$LOG_FILE"
+
+# 6.5단계: 투자 테제 로드
+echo "$(date): 투자 테제 로드" >> "$LOG_FILE"
+THESIS_SUMMARY=$("$PYTHON" -c "
+from update_thesis import format_thesis_summary
+print(format_thesis_summary())
+" 2>/dev/null || echo "투자 테제 없음")
+
+# 6.6단계: Tier 1 감시 데이터 구조화 요약
+echo "$(date): Tier 1 데이터 로드" >> "$LOG_FILE"
+REPORT_DATE_FOR_MONITOR=$(TZ=Asia/Seoul date +%Y-%m-%d)
+MONITOR_SUMMARY=$("$PYTHON" -c "
+from news_monitor import format_daily_briefing
+print(format_daily_briefing('$REPORT_DATE_FOR_MONITOR'))
+" 2>/dev/null || echo "Tier 1 데이터 로드 실패")
 
 # 7단계: Claude Code로 한국시장 보고서 생성
 REPORT_DATE=$(TZ=Asia/Seoul date +%Y-%m-%d)
@@ -123,6 +135,16 @@ $PORTFOLIO_DATA
 === 시장 데이터 + 종목 검증 ===
 $MARKET_DATA
 
+=== Tier 1 장중 감시 누적 데이터 ===
+$MONITOR_SUMMARY
+
+=== 투자 테제 (누적 판단) ===
+이 테제는 이전 보고서들의 예측/판단을 누적 추적한 것이다.
+- 확신도(conviction)가 7+ 종목은 근거 없이 판단 변경 금지
+- accuracy의 편향(bias)을 발견하면 예상 종가를 보정하라
+- 이전 판단과 달라질 경우 변경 사유를 명시하라
+$THESIS_SUMMARY
+
 === 기술분석 ===
 $TECH_DATA" \
     --allowedTools "WebSearch,WebFetch,Bash,Write,Read,Edit,Glob,Grep" \
@@ -133,6 +155,34 @@ $TECH_DATA" \
 EXIT_CODE=$?
 
 echo "$(date): 한국 보고서 생성 완료 (exit=$EXIT_CODE)" >> "$LOG_FILE"
+
+# 가격 검증 + 자동 보정
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    echo "$(date): 가격 검증 + 자동 보정" >> "$LOG_FILE"
+    "$PYTHON" "$STOCK_DIR/price_verify.py" "$STOCK_DIR/$REPORT_FILE" --fix >> "$LOG_FILE" 2>&1 || true
+fi
+
+# 투자 테제 업데이트
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    echo "$(date): 투자 테제 업데이트" >> "$LOG_FILE"
+    "$PYTHON" "$STOCK_DIR/update_thesis.py" --report "$STOCK_DIR/$REPORT_FILE" >> "$LOG_FILE" 2>&1 || true
+fi
+
+# 보고서 검증
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    echo "$(date): 보고서 검증" >> "$LOG_FILE"
+    "$PYTHON" "$STOCK_DIR/validate_report.py" "$STOCK_DIR/$REPORT_FILE" --notify --type kr >> "$LOG_FILE" 2>&1 || true
+fi
+
+# 포트폴리오 스냅샷
+echo "$(date): 포트폴리오 스냅샷" >> "$LOG_FILE"
+"$PYTHON" "$STOCK_DIR/portfolio_tracker.py" --snapshot >> "$LOG_FILE" 2>&1 || true
+
+# 텔레그램 알림
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    echo "$(date): 텔레그램 전송" >> "$LOG_FILE"
+    bash "$STOCK_DIR/telegram_notify.sh" "$STOCK_DIR/$REPORT_FILE" "한국 보고서" >> "$LOG_FILE" 2>&1 || true
+fi
 
 # 30일 이상 된 로그 삭제
 find "$LOG_DIR" -name "korea_report_*.log" -mtime +30 -delete 2>/dev/null || true

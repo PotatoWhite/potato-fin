@@ -4,21 +4,15 @@
 
 set -euo pipefail
 
-STOCK_DIR="/Users/user/Documents/invest"
+STOCK_DIR="/home/bravopotato/Spaces/finspace/potato-fin"
 PYTHON="$STOCK_DIR/.venv/bin/python3"
 SCRIPT="$STOCK_DIR/주가_업데이트.py"
-LOG_DIR="$HOME/Library/Logs/stock-monitor"
+LOG_DIR="$HOME/logs/stock-monitor"
 
 mkdir -p "$LOG_DIR"
 
 LOG_FILE="$LOG_DIR/update_$(date +%Y%m%d_%H%M%S).log"
 
-# 주말 체크 (토=6, 일=7)
-DOW=$(date +%u)
-if [ "$DOW" -ge 6 ]; then
-    echo "$(date): 주말이므로 건너뜀 (요일=$DOW)" >> "$LOG_FILE"
-    exit 0
-fi
 
 echo "$(date): 주가 업데이트 시작" >> "$LOG_FILE"
 
