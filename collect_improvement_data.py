@@ -174,21 +174,22 @@ def collect_price_accuracy() -> str:
 
 
 def collect_crontab_health() -> str:
-    """크론탭 실행 상태 확인."""
+    """크론탭 실행 상태 확인 + 24시간 이상 미업데이트 시 텔레그램 알림."""
     lines = ["=== 크론탭 실행 상태 ==="]
     now = datetime.now(KST)
+    alerts = []
 
     checks = {
-        'monitor.log': '뉴스 감시',
-        'premarket.log': '장전 브리핑',
-        'midcheck.log': '장중 체크',
-        'korea_report.log': '한국 보고서',
-        'us_report.log': 'US 보고서',
-        'alerts.log': '가격 알림',
-        'schedule.log': '스케줄링',
+        'monitor.log': ('뉴스 감시', 6),  # (설명, 알림 임계값 시간)
+        'premarket.log': ('장전 브리핑', 30),
+        'midcheck.log': ('장중 체크', 30),
+        'korea_report.log': ('한국 보고서', 30),
+        'us_report.log': ('US 보고서', 30),
+        'alerts.log': ('가격 알림', 6),
+        'schedule.log': ('스케줄링', 30),
     }
 
-    for logname, desc in checks.items():
+    for logname, (desc, threshold_hours) in checks.items():
         logpath = LOG_DIR / logname
         if logpath.exists():
             mtime = datetime.fromtimestamp(logpath.stat().st_mtime, tz=KST)
@@ -200,14 +201,39 @@ def collect_crontab_health() -> str:
                 tail = logpath.read_text(errors='ignore')[-2000:]
                 if 'not found' in tail or 'Error' in tail:
                     status = "❌ 에러"
+                    alerts.append(f"{desc} 에러 발생")
             except Exception:
                 pass
+
+            # 임계값 초과 체크
+            if age > timedelta(hours=threshold_hours):
+                alerts.append(f"{desc} {threshold_hours}시간 이상 미업데이트 ({age.days}일 {age.seconds//3600}시간)")
+
             lines.append(f"  {status} {desc} ({logname}): "
                          f"최근 {age.days}일 {age.seconds//3600}시간 전, {size:,}B")
         else:
             lines.append(f"  ❌ {desc} ({logname}): 파일 없음")
+            alerts.append(f"{desc} 로그 파일 없음")
+
+    # 텔레그램 알림
+    if alerts:
+        _send_telegram_alert(alerts)
 
     return '\n'.join(lines)
+
+
+def _send_telegram_alert(alerts: list[str]):
+    """텔레그램으로 알림 전송."""
+    try:
+        import subprocess
+        message = "⚠️ **운영 루프 중단 감지**\n\n" + "\n".join(f"• {a}" for a in alerts)
+        subprocess.run(
+            ['python3', str(STOCK_DIR / 'telegram_bot.py'), '--send', message],
+            capture_output=True,
+            timeout=10
+        )
+    except Exception as e:
+        print(f"[WARN] 텔레그램 알림 실패: {e}", file=sys.stderr)
 
 
 def collect_file_inventory() -> str:

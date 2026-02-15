@@ -535,7 +535,8 @@ def compare_predictions(thesis: dict, actuals: dict) -> list[dict]:
 
     Returns list of comparison results:
         [{"ticker": "NVDA", "predicted": 180, "actual": 182, "error_pct": 1.1,
-          "direction_correct": True, "predicted_dir": "bullish", "actual_dir": "up"}, ...]
+          "direction_correct": True, "predicted_dir": "bullish", "actual_dir": "up",
+          "interim": False}, ...]
     """
     results = []
     tickers_data = thesis.get('tickers', {})
@@ -543,6 +544,10 @@ def compare_predictions(thesis: dict, actuals: dict) -> list[dict]:
     today = datetime.now(KST).strftime('%Y-%m-%d')
 
     for ticker, tdata in tickers_data.items():
+        # 가격 오염 종목은 예측 비교에서 제외
+        if tdata.get('price_contaminated', False):
+            continue
+
         preds = tdata.get('predictions', {})
         five_d = preds.get('5d', {})
         pred_price = five_d.get('price')
@@ -552,9 +557,10 @@ def compare_predictions(thesis: dict, actuals: dict) -> list[dict]:
         if pred_price is None or ticker not in actuals:
             continue
 
-        # 만기일 검증: 만기 미도래 예측은 비교하지 않음
+        # 만기일 검증: 만기 미도래 예측은 중간 추적
+        interim = False
         if pred_date and pred_date > today:
-            continue
+            interim = True
 
         actual = actuals[ticker]
         current_at_pred = five_d.get('current')
@@ -605,6 +611,7 @@ def compare_predictions(thesis: dict, actuals: dict) -> list[dict]:
             'predicted_dir': pred_dir,
             'actual_dir': actual_dir,
             'pred_date': pred_date,
+            'interim': interim,  # 중간 추적 여부
         })
 
     return results
@@ -867,11 +874,13 @@ def update_thesis(report_path: str) -> dict:
     # 이전 예측 비교
     comparisons = compare_predictions(thesis, actuals)
     if comparisons:
-        print(f"[INFO] 예측 비교: {len(comparisons)}건")
+        final_comps = [c for c in comparisons if not c['interim']]
+        interim_comps = [c for c in comparisons if c['interim']]
+        print(f"[INFO] 예측 비교: {len(final_comps)}건 (최종), {len(interim_comps)}건 (중간 추적)")
 
-        # 확신도 업데이트
+        # 확신도 업데이트 (최종 비교만)
         revision_log = thesis.get('revision_log', [])
-        for comp in comparisons:
+        for comp in final_comps:
             ticker = comp['ticker']
             if ticker not in thesis.get('tickers', {}):
                 continue
@@ -903,30 +912,60 @@ def update_thesis(report_path: str) -> dict:
             signed_err = round(
                 (comp['predicted'] - comp['actual']) / comp['actual'] * 100, 2
             ) if comp['actual'] > 0 else 0
-            bias['n_predictions'] += 1
+            weight = 1.0  # 최종 비교는 가중치 1.0
+            bias['n_predictions'] += weight
             bias['signed_errors'] = (bias.get('signed_errors', []) + [signed_err])[-10:]
             bias['avg_signed_error_pct'] = round(
                 sum(bias['signed_errors']) / len(bias['signed_errors']), 2
             )
             if comp['direction_correct']:
-                bias['direction_hits'] = bias.get('direction_hits', 0) + 1
+                bias['direction_hits'] = bias.get('direction_hits', 0) + weight
             bias['direction_hit_rate'] = round(
                 bias['direction_hits'] / bias['n_predictions'] * 100, 1
             )
 
-        # 정확도 누적 업데이트
+        # 중간 추적 (가중치 0.3, 확신도 변경 없음)
+        for comp in interim_comps:
+            ticker = comp['ticker']
+            if ticker not in thesis.get('tickers', {}):
+                continue
+            tdata = thesis['tickers'][ticker]
+            bias = tdata.setdefault('bias_tracker', {
+                'n_predictions': 0,
+                'signed_errors': [],
+                'avg_signed_error_pct': 0.0,
+                'direction_hit_rate': 0.0,
+                'direction_hits': 0,
+            })
+            signed_err = round(
+                (comp['predicted'] - comp['actual']) / comp['actual'] * 100, 2
+            ) if comp['actual'] > 0 else 0
+            weight = 0.3  # 중간 추적은 낮은 가중치
+            bias['n_predictions'] += weight
+            bias['signed_errors'] = (bias.get('signed_errors', []) + [signed_err])[-10:]
+            bias['avg_signed_error_pct'] = round(
+                sum(bias['signed_errors']) / len(bias['signed_errors']), 2
+            )
+            if comp['direction_correct']:
+                bias['direction_hits'] = bias.get('direction_hits', 0) + weight
+            bias['direction_hit_rate'] = round(
+                bias['direction_hits'] / bias['n_predictions'] * 100, 1
+            )
+
+        # 정확도 누적 업데이트 (최종 비교만 카운트)
         acc = thesis.get('accuracy', {})
-        total = acc.get('total_predictions', 0) + len(comparisons)
+        total = acc.get('total_predictions', 0) + len(final_comps)
         correct = acc.get('direction_correct', 0) + sum(
-            1 for c in comparisons if c['direction_correct'])
+            1 for c in final_comps if c['direction_correct'])
         acc['total_predictions'] = total
         acc['direction_correct'] = correct
         acc['direction_rate'] = round(correct / total * 100, 1) if total > 0 else 0
-        # 이동 평균 오차율
+        # 이동 평균 오차율 (최종 비교만)
         old_avg = acc.get('avg_error_pct', 0)
-        new_errors = [c['error_pct'] for c in comparisons]
+        new_errors = [c['error_pct'] for c in final_comps]
         avg_new = sum(new_errors) / len(new_errors) if new_errors else 0
-        acc['avg_error_pct'] = round((old_avg * 0.7 + avg_new * 0.3), 1)
+        if new_errors:
+            acc['avg_error_pct'] = round((old_avg * 0.7 + avg_new * 0.3), 1)
 
         # 체계적 편향 진단 (종목별 bias_tracker 기반)
         bullish_bias = 0

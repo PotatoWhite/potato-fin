@@ -267,6 +267,9 @@ def fix_report(report_path: str, result: dict) -> list:
     if not discrepancies:
         return []
 
+    # 가격 오염 종목 목록 (10%+ 오차)
+    contaminated_tickers = []
+
     # 현재가 라인 보정
     for d in discrepancies:
         if d['source'] != '현재가':
@@ -317,6 +320,10 @@ def fix_report(report_path: str, result: dict) -> list:
             text = text.replace(old_line, new_line)
             corrections.append(
                 f'{d["name"]}: 현재가 {old_fmt} → {new_fmt} (오차 {d["diff_pct"]:.1f}%)')
+
+            # 10%+ 오차 종목은 예측 오염 대상
+            if d['diff_pct'] > 10:
+                contaminated_tickers.append(d['yf'])
 
     # 5거래일 전망 테이블 보정
     for d in discrepancies:
@@ -376,7 +383,55 @@ def fix_report(report_path: str, result: dict) -> list:
 
         Path(report_path).write_text(text, encoding='utf-8')
 
+    # investment_thesis.json에 오염 플래그 추가
+    if contaminated_tickers:
+        _mark_contaminated_predictions(contaminated_tickers)
+
     return corrections
+
+
+def _mark_contaminated_predictions(tickers: list[str]):
+    """가격 오염 종목의 예측을 무효화.
+
+    investment_thesis.json에 price_contaminated: true 플래그를 추가하여
+    향후 예측 비교 시 이 종목을 건너뛰도록 한다.
+    """
+    thesis_file = STOCK_DIR / "investment_thesis.json"
+    if not thesis_file.exists():
+        return
+
+    try:
+        thesis = json.loads(thesis_file.read_text(encoding='utf-8'))
+        now = datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M')
+
+        for ticker in tickers:
+            if ticker in thesis.get('tickers', {}):
+                tdata = thesis['tickers'][ticker]
+                tdata['price_contaminated'] = True
+                tdata['contaminated_date'] = now
+
+                # 현재 예측 삭제 (다음 보고서에서 재설정됨)
+                if 'predictions' in tdata:
+                    tdata['predictions'] = {}
+
+                # 확신도 리셋
+                old_conv = tdata.get('conviction', 5)
+                if old_conv > 3:
+                    tdata['conviction'] = 3
+                    thesis.setdefault('revision_log', []).append({
+                        'date': now.split()[0],
+                        'ticker': ticker,
+                        'field': 'conviction',
+                        'old': old_conv,
+                        'new': 3,
+                        'reason': f'가격 오염 (현재가 오차 >10%)',
+                    })
+
+        thesis['_updated'] = now
+        thesis_file.write_text(json.dumps(thesis, ensure_ascii=False, indent=2), encoding='utf-8')
+        print(f"[INFO] {len(tickers)}개 종목 예측 무효화: {tickers}")
+    except Exception as e:
+        print(f"[WARN] 테제 업데이트 실패: {e}", file=sys.stderr)
 
 
 def format_result(result: dict) -> str:
