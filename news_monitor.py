@@ -79,6 +79,7 @@ MARKETS = {
 
 TICKER_MARKET = {
     "035420.KS": "KR", "195940.KQ": "KR", "429760.KS": "KR",
+    "005930.KS": "KR", "000660.KS": "KR",
     "1377.T": "JP", "BAYN.DE": "EU",
     "BOTZ": "US", "CVX": "US", "GOOGL": "US", "MSFT": "US",
     "NVDA": "US", "PLTR": "US", "QCOM": "US", "SLV": "US",
@@ -91,6 +92,7 @@ NON_US_SUFFIXES = ('.KS', '.KQ', '.T', '.DE', '.L', '.HK')
 # 종목별 포트폴리오 비중 (alert_config.json에서 동적으로 읽지만 폴백용)
 TICKER_NAMES = {
     "035420.KS": "NAVER", "195940.KQ": "HK이노엔", "429760.KS": "PLUS S&P500",
+    "005930.KS": "삼성전자", "000660.KS": "SK하이닉스",
     "1377.T": "사카타종묘", "BAYN.DE": "바이엘",
     "BOTZ": "BOTZ", "CVX": "셰브론", "GOOGL": "알파벳", "MSFT": "마이크로소프트",
     "NVDA": "엔비디아", "PLTR": "팔란티어", "QCOM": "퀄컴", "SLV": "은ETF",
@@ -187,6 +189,10 @@ INDUSTRY_EVENTS = [
      "note": "네이버 개발자 컨퍼런스. AI/검색/커머스 신기술"},
     {"name": "바이오코리아", "month": 5, "tickers": ["195940.KQ"], "type": "conference",
      "note": "한국 바이오 산업 전시. 라이선스 딜 발표"},
+    {"name": "삼성전자 반도체 파운드리 포럼", "month": 6, "tickers": ["005930.KS"], "type": "conference",
+     "note": "삼성 파운드리 로드맵/수주. HBM/GAA 공정 진척"},
+    {"name": "SK하이닉스 HBM 발표", "month": 3, "tickers": ["000660.KS"], "type": "conference",
+     "note": "HBM4 양산/NVIDIA 공급 계약. AI 메모리 수요"},
 
     # 정책/매크로 (전체 영향)
     {"name": "Jackson Hole 심포지엄", "month": 8, "tickers": ["_ALL"], "type": "policy",
