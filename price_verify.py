@@ -348,7 +348,17 @@ def fix_report(report_path: str, result: dict) -> list:
         notice_lines = ['> ⚠️ **가격 자동 보정 적용됨** (price_verify.py)']
         for c in corrections:
             notice_lines.append(f'> - {c}')
-        notice_lines.append('> - 5거래일 예측값은 보정 전 가격 기준이므로 참고만 할 것')
+        # 큰 보정(>10%)이 있는 종목 예측은 무효 표시
+        big_corrections = [c for c in corrections if any(
+            d['diff_pct'] > 10 and d['name'] in c
+            for d in discrepancies
+        )]
+        if big_corrections:
+            notice_lines.append('> - **주의**: 현재가 오차 >10% 종목의 5거래일 예측은 무효 (잘못된 현재가 기반)')
+            for bc in big_corrections:
+                notice_lines.append(f'>   → {bc.split(":")[0]}: 예측 무효')
+        else:
+            notice_lines.append('> - 5거래일 예측값은 보정 전 가격 기준이므로 참고만 할 것')
         notice_lines.append('')
         notice = '\n'.join(notice_lines)
 

@@ -169,7 +169,7 @@ Finnhub 뉴스 센티먼트가 [6]에 포함되어 있다. 스캔들 감지 종�
 CLAUDE.md의 '숨은 진주 — 인덱스별 분리 발굴' 템플릿에 따라 4개 인덱스별로 숨은 진주를 발굴하라.
 
 ★★★ 숨은 진주 필수 규칙 ★★★
-- 보유 종목(035420.KS,195940.KQ,429760.KS,1377.T,BAYN.DE,BOTZ,CVX,GOOGL,MSFT,NVDA,PLTR,QCOM,SLV,TSLA,UNH,WRB,XOM) 절대 포함 금지
+- 보유 종목(005930.KS,000660.KS,035420.KS,195940.KQ,429760.KS,1377.T,BAYN.DE,BOTZ,CVX,GOOGL,MSFT,NVDA,PLTR,QCOM,SLV,TSLA,UNH,WRB,XOM) 절대 포함 금지
 - 시총 \$100B 이상 대형주(AAPL,AMZN,META,GOOG,TSMC,AVGO 등) 포함 금지
 - 섹터 ETF(XLK,XLB,XLP,IWM 등) 포함 금지 — 개별 종목 티커만 제시
 - \"다수\", \"여러 종목\" 같은 모호한 표현 금지 — 반드시 구체적 티커+시총+수치

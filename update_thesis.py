@@ -540,6 +540,8 @@ def compare_predictions(thesis: dict, actuals: dict) -> list[dict]:
     results = []
     tickers_data = thesis.get('tickers', {})
 
+    today = datetime.now(KST).strftime('%Y-%m-%d')
+
     for ticker, tdata in tickers_data.items():
         preds = tdata.get('predictions', {})
         five_d = preds.get('5d', {})
@@ -550,10 +552,21 @@ def compare_predictions(thesis: dict, actuals: dict) -> list[dict]:
         if pred_price is None or ticker not in actuals:
             continue
 
+        # 만기일 검증: 만기 미도래 예측은 비교하지 않음
+        if pred_date and pred_date > today:
+            continue
+
         actual = actuals[ticker]
         current_at_pred = five_d.get('current')
         if current_at_pred is None:
             continue
+
+        # 현재가 정합성 검증: 예측 기준 현재가가 비현실적이면 건너뛰기
+        if current_at_pred > 0 and actual > 0:
+            base_divergence = abs(current_at_pred - actual) / actual
+            # 5일 전 현재가가 실제와 50% 이상 다르면 오염된 데이터
+            if base_divergence > 0.50:
+                continue
 
         error = actual - pred_price
         error_pct = abs(error / pred_price * 100) if pred_price else 0
@@ -577,7 +590,9 @@ def compare_predictions(thesis: dict, actuals: dict) -> list[dict]:
         elif pred_dir == 'neutral' and actual_dir == 'flat':
             dir_correct = True
         elif pred_dir == 'neutral':
-            dir_correct = True  # 횡보 예측은 관대하게
+            # neutral은 실제 변동 ±1% 이내일 때만 적중
+            if current_at_pred > 0 and abs(actual_move / current_at_pred) < 0.01:
+                dir_correct = True
 
         results.append({
             'ticker': ticker,
@@ -876,6 +891,29 @@ def update_thesis(report_path: str) -> dict:
                 })
             tdata['conviction'] = new_conv
 
+            # bias_tracker 업데이트 (종목별 편향 추적)
+            bias = tdata.setdefault('bias_tracker', {
+                'n_predictions': 0,
+                'signed_errors': [],  # 최근 10건
+                'avg_signed_error_pct': 0.0,
+                'direction_hit_rate': 0.0,
+                'direction_hits': 0,
+            })
+            # 부호 있는 오차 (음수=약세편향, 양수=강세편향)
+            signed_err = round(
+                (comp['predicted'] - comp['actual']) / comp['actual'] * 100, 2
+            ) if comp['actual'] > 0 else 0
+            bias['n_predictions'] += 1
+            bias['signed_errors'] = (bias.get('signed_errors', []) + [signed_err])[-10:]
+            bias['avg_signed_error_pct'] = round(
+                sum(bias['signed_errors']) / len(bias['signed_errors']), 2
+            )
+            if comp['direction_correct']:
+                bias['direction_hits'] = bias.get('direction_hits', 0) + 1
+            bias['direction_hit_rate'] = round(
+                bias['direction_hits'] / bias['n_predictions'] * 100, 1
+            )
+
         # 정확도 누적 업데이트
         acc = thesis.get('accuracy', {})
         total = acc.get('total_predictions', 0) + len(comparisons)
@@ -889,6 +927,36 @@ def update_thesis(report_path: str) -> dict:
         new_errors = [c['error_pct'] for c in comparisons]
         avg_new = sum(new_errors) / len(new_errors) if new_errors else 0
         acc['avg_error_pct'] = round((old_avg * 0.7 + avg_new * 0.3), 1)
+
+        # 체계적 편향 진단 (종목별 bias_tracker 기반)
+        bullish_bias = 0
+        bearish_bias = 0
+        for t, td in thesis.get('tickers', {}).items():
+            bt = td.get('bias_tracker', {})
+            avg_se = bt.get('avg_signed_error_pct', 0)
+            if avg_se > 2.0:  # 양수 = 강세편향 (예측 > 실제)
+                bullish_bias += 1
+            elif avg_se < -2.0:
+                bearish_bias += 1
+        if bullish_bias > bearish_bias and bullish_bias >= 3:
+            acc['systematic_bias'] = f'bullish ({bullish_bias}종목)'
+        elif bearish_bias > bullish_bias and bearish_bias >= 3:
+            acc['systematic_bias'] = f'bearish ({bearish_bias}종목)'
+        else:
+            acc['systematic_bias'] = 'none'
+
+        # worst/best 종목 재계산 (bias_tracker 기반)
+        ticker_errors = []
+        for t, td in thesis.get('tickers', {}).items():
+            bt = td.get('bias_tracker', {})
+            if bt.get('n_predictions', 0) >= 2:
+                ticker_errors.append((t, abs(bt.get('avg_signed_error_pct', 0)),
+                                      bt.get('direction_hit_rate', 50)))
+        if ticker_errors:
+            ticker_errors.sort(key=lambda x: x[1], reverse=True)
+            acc['worst_tickers'] = [t for t, _, _ in ticker_errors[:3]]
+            ticker_errors.sort(key=lambda x: x[2], reverse=True)
+            acc['best_tickers'] = [t for t, _, _ in ticker_errors[:3]]
 
         # revision_log 최근 20건만 유지
         thesis['revision_log'] = revision_log[-20:]
@@ -971,17 +1039,38 @@ def update_thesis(report_path: str) -> dict:
         elif pred_5d.get('target') is not None:
             tdata['target'] = pred_5d['target']
 
-        # 5일 예측 갱신
+        # 5일 예측 갱신 — 현재가 정합성 검증 후 저장
         est_close = pred_5d.get('est_close') or analysis.get('pred_5d')
         if est_close is not None:
-            tdata['predictions'] = {
-                '5d': {
-                    'price': est_close,
-                    'current': pred_5d.get('current') or actuals.get(ticker),
-                    'date': _calc_5d_date(report.get('date', '')),
-                    'from_report': report['file'],
+            report_current = pred_5d.get('current')
+            actual_current = actuals.get(ticker)
+
+            # 보고서 현재가 vs yfinance 실측 비교
+            store_prediction = True
+            if report_current and actual_current and actual_current > 0:
+                divergence = abs(report_current - actual_current) / actual_current
+                if divergence > 0.10:  # 10% 이상 차이 → 예측 폐기
+                    print(f"[WARN] {ticker}: 보고서 현재가 {report_current:.2f} vs "
+                          f"실측 {actual_current:.2f} (오차 {divergence:.1%}). 예측 폐기.")
+                    store_prediction = False
+
+            # 예측 변동폭 검증 (현재가 대비 ±20% 초과 시 경고)
+            if store_prediction and actual_current and actual_current > 0:
+                pred_change_pct = abs(est_close - actual_current) / actual_current
+                if pred_change_pct > 0.20:
+                    print(f"[WARN] {ticker}: 5일 예측 {est_close:.2f} = 현재가 대비 "
+                          f"{pred_change_pct:.1%} 변동. 비현실적 예측 폐기.")
+                    store_prediction = False
+
+            if store_prediction:
+                tdata['predictions'] = {
+                    '5d': {
+                        'price': est_close,
+                        'current': actual_current or report_current,  # 실측 우선
+                        'date': _calc_5d_date(report.get('date', '')),
+                        'from_report': report['file'],
+                    }
                 }
-            }
 
         # 특수 라벨
         if analysis.get('special_labels'):
@@ -1104,8 +1193,17 @@ def format_thesis_summary() -> str:
         label_str = ' ' + ' '.join(labels) if labels else ''
         score_str = f"{total_score:+.1f}" if total_score else "+0.0"
 
+        # 편향 정보 (있으면)
+        bt = tdata.get('bias_tracker', {})
+        bias_str = ''
+        if bt.get('n_predictions', 0) >= 2:
+            avg_se = bt.get('avg_signed_error_pct', 0)
+            if abs(avg_se) > 1.5:
+                bias_label = '강세편향' if avg_se > 0 else '약세편향'
+                bias_str = f' ⚠{bias_label}{avg_se:+.1f}%'
+
         line = (f"{ticker} [{conv}/10 {j_kr}↔ {d_kr}] {score_str}"
-                f"{label_str} | 5d→{price_str}"
+                f"{label_str}{bias_str} | 5d→{price_str}"
                 + (f" | {catalyst}" if catalyst else ""))
         lines.append(line)
 

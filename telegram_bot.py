@@ -475,7 +475,11 @@ def cmd_help() -> str:
 /w — 주간 예측 회고
 /v — 보고서 검증
 
-_풀 명령어: /price /portfolio /snapshot /thesis /report /alert /monitor /accuracy /weekly /validate_"""
+*자유 텍스트도 OK:*
+"삼성전자" → 가격 조회
+"포트폴리오 얼마야" → 스냅샷
+"NVDA 어때" → 종목 상세
+기타 → Claude가 해석"""
 
 
 COMMANDS = {
@@ -507,23 +511,166 @@ COMMANDS = {
 }
 
 
+def handle_freetext(text: str) -> str | None:
+    """자유 텍스트 → 기존 명령 매핑 또는 Claude 처리."""
+    low = text.lower().strip()
+
+    # 1) 종목명/티커 매칭 → 가격 조회
+    sys.path.insert(0, str(STOCK_DIR))
+    from update_thesis import ALL_TICKERS, TICKER_NAMES
+    # 한글 종목명 → 티커 역매핑
+    name_to_ticker = {v: k for k, v in TICKER_NAMES.items()}
+    # 짧은 이름도 (삼성→삼성전자, SK→SK하이닉스 등)
+    ALIASES = {
+        '삼성': '005930.KS', '삼전': '005930.KS', '삼성전자': '005930.KS',
+        'sk': '000660.KS', 'sk하이닉스': '000660.KS', '하이닉스': '000660.KS',
+        '네이버': '035420.KS', 'naver': '035420.KS',
+        '이노엔': '195940.KQ', 'hk이노엔': '195940.KQ', '케이캡': '195940.KQ',
+        '엔비디아': 'NVDA', '테슬라': 'TSLA', '구글': 'GOOGL', '마소': 'MSFT',
+        '마이크로소프트': 'MSFT', '팔란티어': 'PLTR', '퀄컴': 'QCOM',
+        '셰브론': 'CVX', '엑슨': 'XOM', '유나이티드': 'UNH', '바이엘': 'BAYN.DE',
+        '사카타': '1377.T',
+    }
+
+    # 가격/시세/얼마 + 종목명
+    price_keywords = ['가격', '시세', '얼마', '현재가', '주가', '어때', '어떄', '어떻']
+    is_price_query = any(kw in low for kw in price_keywords)
+
+    # 종목명 직접 입력 (예: "삼성전자", "NVDA")
+    matched_ticker = None
+    for alias, ticker in ALIASES.items():
+        if alias in low:
+            matched_ticker = ticker
+            break
+    if not matched_ticker:
+        for name, ticker in name_to_ticker.items():
+            if name.lower() in low:
+                matched_ticker = ticker
+                break
+    if not matched_ticker:
+        for t in ALL_TICKERS:
+            if t.lower() in low or t.split('.')[0].lower() in low:
+                matched_ticker = t
+                break
+
+    if matched_ticker:
+        return cmd_price(matched_ticker)
+
+    # 2) 키워드 매핑 → 기존 명령
+    keyword_map = [
+        (['보고서', '리포트', '분석'], cmd_report),
+        (['포트폴리오', '평가', '총액', '자산', '얼마야'], lambda: cmd_snapshot()),
+        (['스냅샷'], lambda: cmd_snapshot()),
+        (['테제', '판단', '전략'], cmd_thesis),
+        (['알림', '손절', '목표가', '알럿'], cmd_alert),
+        (['감시', '모니터', '감시병'], cmd_monitor),
+        (['정확도', '예측', '적중'], cmd_accuracy),
+        (['주간', '회고', '리뷰'], cmd_weekly),
+        (['검증', '밸리'], cmd_validate),
+        (['도움', '명령', '뭐할수'], cmd_help),
+    ]
+    for keywords, func in keyword_map:
+        if any(kw in low for kw in keywords):
+            return func()
+
+    # 3) 전체 현재가 요청
+    if any(kw in low for kw in ['전종목', '전체', '다보여', '종목들']):
+        return cmd_price('')
+
+    # 4) Claude CLI로 처리 (haiku, 저비용)
+    return handle_with_claude(text)
+
+
+def handle_with_claude(text: str) -> str:
+    """Claude CLI (haiku)로 자유 텍스트 처리."""
+    import subprocess
+
+    CLAUDE_PATH = "/home/linuxbrew/.linuxbrew/bin/claude"
+
+    # 간단한 컨텍스트 구성
+    context_parts = []
+
+    # 최신 포트폴리오 요약
+    try:
+        sys.path.insert(0, str(STOCK_DIR))
+        from portfolio_tracker import format_summary
+        context_parts.append(format_summary())
+    except Exception:
+        pass
+
+    # 최신 감시 데이터
+    latest = STOCK_DIR / "data" / "monitor" / "latest.json"
+    if latest.exists():
+        try:
+            snap = json.loads(latest.read_text(encoding='utf-8'))
+            triggers = snap.get('triggers', [])
+            if triggers:
+                context_parts.append(f"최근 트리거: {json.dumps(triggers[:3], ensure_ascii=False)}")
+        except Exception:
+            pass
+
+    context = '\n'.join(context_parts)
+
+    prompt = f"""사용자 메시지: {text}
+
+당신은 주식 포트폴리오 관리 봇이다. 사용자의 요청에 간결하게 답하라.
+텔레그램으로 답하므로 4000자 이내, 핵심만.
+
+포트폴리오 현황:
+{context}
+
+매수/매도 지시인 경우: 종목, 수량, 가격 조건을 확인하고, 실행 가능 여부를 답하라. 실제 매매는 수행하지 않고 계획만 제시.
+질문인 경우: 포트폴리오 데이터를 기반으로 답하라.
+의견/코멘트인 경우: 인지했음을 확인하고, 다음 보고서에 반영할 점을 정리하라."""
+
+    try:
+        result = subprocess.run(
+            [CLAUDE_PATH, '-p', prompt,
+             '--model', 'haiku',
+             '--max-budget-usd', '0.15',
+             '--permission-mode', 'bypassPermissions',
+             '--allowedTools', ''],
+            capture_output=True, text=True, timeout=60,
+            cwd=str(STOCK_DIR),
+            env={**os.environ, 'CLAUDECODE': ''}
+        )
+        response = result.stdout.strip()
+        if response:
+            return response
+        if result.stderr:
+            return f"처리 중 오류: {result.stderr[:200]}"
+        return "메시지 수신. 다음 보고서에 반영하겠습니다."
+    except subprocess.TimeoutExpired:
+        return "처리 시간 초과. 메시지는 기록되었습니다."
+    except Exception as e:
+        return f"Claude 처리 실패: {e}"
+
+
 def handle_message(text: str, chat_id: str) -> str | None:
-    """메시지 처리."""
+    """메시지 처리 — 명령어 + 자유 텍스트 모두 처리."""
     text = text.strip()
-    if not text.startswith('/'):
+    if not text:
         return None
 
-    parts = text.split(maxsplit=1)
-    cmd = parts[0].lower().split('@')[0]  # /price@botname → /price
-    args = parts[1] if len(parts) > 1 else ''
+    # 1) 슬래시 명령어
+    if text.startswith('/'):
+        parts = text.split(maxsplit=1)
+        cmd = parts[0].lower().split('@')[0]  # /price@botname → /price
+        args = parts[1] if len(parts) > 1 else ''
 
-    handler = COMMANDS.get(cmd)
-    if handler:
-        try:
-            return handler(args)
-        except Exception as e:
-            return f"오류: {e}"
-    return None
+        handler = COMMANDS.get(cmd)
+        if handler:
+            try:
+                return handler(args)
+            except Exception as e:
+                return f"오류: {e}"
+        return f"알 수 없는 명령: {cmd}\n/h 로 명령어 목록 확인"
+
+    # 2) 자유 텍스트
+    try:
+        return handle_freetext(text)
+    except Exception as e:
+        return f"처리 오류: {e}"
 
 
 def poll_updates():

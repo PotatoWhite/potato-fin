@@ -3,38 +3,49 @@
 ## 프로젝트 구조
 
 ```
-/Users/user/Documents/stock/
+/home/bravopotato/Spaces/finspace/potato-fin/
 ├── CLAUDE.md              # 이 파일 (Claude 지시서)
 ├── requirements.txt       # Python 의존성
-├── 매매기록.xlsx            # 매매 내역 원본 (매수/매도 기록)
-├── 주식.xlsx               # 날짜별 포트폴리오 스냅샷 (시트명: YYYYMMDDHHmm)
-├── 주식_통합.xlsx           # 피벗 테이블 (평가금액/평가손익/손익률 시트)
-├── 주가_업데이트.py          # 자동 주가 조회 + 시트 생성 스크립트
+├── portfolio_db.py        # 중앙 DB 모듈 (SECTOR, load_portfolio, get_tickers, get_cost_basis)
+├── portfolio.db           # SQLite DB (trades + snapshots 테이블)
+├── 주가_업데이트.py          # 자동 주가 조회 + SQLite 스냅샷 저장
 ├── mcp_server.py          # MCP 서버 (Claude Code 연동)
 ├── price_alerts.py        # 가격 알림 모니터링
 ├── alert_config.json      # 알림 설정 (종목별 손절선/목표가)
-├── run_update.sh          # launchd 래퍼 스크립트
+├── portfolio_config.json  # 현금 잔고 / 리스크 프로필
 ├── technical_analysis.py   # 기술적 분석 (ATR/MA/피보나치/볼린저/RSI/거래량)
+├── market_data.py         # 시장 데이터 + 종목 검증 + 종합 점수
+├── news_monitor.py        # Tier 1 뉴스 감시 (30분 간격)
+├── news_sentiment.py      # 뉴스 센티먼트 v2
 ├── update_thesis.py       # 투자 테제 관리 (예측 추적/확신도/누적 판단)
 ├── investment_thesis.json # 누적 투자 테제 (종목별 판단/확신도/정확도)
 ├── portfolio_tracker.py   # 포트폴리오 성과 추적 (일별 스냅샷/추이)
 ├── validate_report.py     # 보고서 품질 자동 검증
-├── telegram_bot.py        # 텔레그램 인터랙티브 봇 (/thesis, /price 등)
-├── 통합_주식.py             # (레거시) 시트 통합 스크립트
+├── price_verify.py        # 보고서 가격 검증 + 자동 보정
+├── telegram_bot.py        # 텔레그램 봇 (/t /p /pf /s /r /a /m /ac /w /v /h)
+├── telegram_notify.sh     # 보고서 PDF 변환 + 텔레그램 전송
+├── md_to_pdf.py           # Markdown → PDF 변환
+├── run_report.sh          # Tier 3 US 보고서 (05:05 KST)
+├── run_korea_report.sh    # Tier 3 한국 보고서 (15:40 KST)
+├── run_premarket.sh       # Tier 2 장전 브리핑 (21:30 KST)
+├── run_midcheck.sh        # Tier 2 장중 체크 (01:00 KST)
+├── event_flash.sh         # Tier 2 이벤트 플래시 (트리거)
+├── run_update.sh          # 주가 업데이트 래퍼
+├── schedule_reports.py    # 경제지표 일정 기반 보고서 스케줄링
 ├── .venv/                 # Python 가상환경
-├── launchd/               # launchd plist 파일
-│   ├── com.stock.update-us.plist    # 미국 마감 05:00 KST
-│   ├── com.stock.update-kr.plist    # 한국 마감 15:35 KST
-│   ├── com.stock.update-jp.plist    # 일본 마감 16:05 KST
-│   └── com.stock.price-alerts.plist # 5분 간격 알림
-└── 보고서/                  # 일별 투자 전략 보고서
-    └── YYYY-MM-DD_HHmm.md
+├── data/                  # 런타임 데이터 (git 제외)
+│   ├── monitor/           # Tier 1 감시 데이터
+│   └── portfolio_history.json
+└── 보고서/                  # 일별 투자 전략 보고서 (git 제외)
+    ├── YYYY-MM-DD_HHmm.md      # US 보고서
+    ├── 한국/YYYY-MM-DD_HHmm.md  # 한국 보고서
+    └── 브리핑/                   # 장전/장중 브리핑
 ```
 
 ## 환경 설정
 
 ```bash
-# venv 활성화 (Python 3.13)
+# Linux (Ubuntu), Python 3.12+
 source .venv/bin/activate
 # 또는 직접 실행
 .venv/bin/python3 주가_업데이트.py
@@ -58,47 +69,45 @@ Claude Code에서 직접 호출 가능한 7개 도구:
 | `get_dividends(tickers)` | 12개월 배당 데이터 |
 | `run_price_update()` | 주가_업데이트.py 실행 |
 | `get_report(date)` | 보고서 읽기 (미입력 시 최신) |
-| `record_trade(...)` | 매매기록.xlsx에 매수/매도 추가 |
+| `record_trade(...)` | SQLite DB에 매수/매도 추가 |
 
 등록: `claude mcp add -s local stock-portfolio -- .venv/bin/python3 mcp_server.py`
 
-## 스케줄링 (launchd)
+## 스케줄링 (cron)
 
-plist 설치:
-```bash
-# ~/Library/LaunchAgents 소유권 수정 필요 시:
-sudo chown $(whoami) ~/Library/LaunchAgents
-# plist 복사 및 로드
-cp launchd/*.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.stock.update-us.plist
-launchctl load ~/Library/LaunchAgents/com.stock.update-kr.plist
-launchctl load ~/Library/LaunchAgents/com.stock.update-jp.plist
-launchctl load ~/Library/LaunchAgents/com.stock.price-alerts.plist
-```
+Tiered monitoring architecture — 6개 스케줄:
 
-| 스케줄 | 시간 (KST) | 설명 |
-|--------|-----------|------|
-| update-us | 평일 05:00 | 미국 시장 마감 후 |
-| update-kr | 평일 15:35 | 한국 시장 마감 후 |
-| update-jp | 평일 16:05 | 일본 시장 마감 후 |
-| price-alerts | 5분 간격 | 개장 시장만 모니터링 |
+| Tier | 스크립트 | 시간 (KST) | 모델 | 비용 |
+|------|---------|-----------|------|------|
+| 1 감시병 | `news_monitor.py` | 30분 간격 (시장 시간) | Python only | $0 |
+| 2 플래시 | `event_flash.sh` | Tier 1 트리거 | Haiku | $0.3-0.5 |
+| 2 장전 | `run_premarket.sh` | 21:30 Mon-Fri | Sonnet | $3-4 |
+| 2 장중 | `run_midcheck.sh` | 01:00 Tue-Sat | Sonnet | $3-4 |
+| 3 한국 | `run_korea_report.sh` | 15:40 Mon-Fri | Opus | $8-10 |
+| 3 US | `run_report.sh` | 05:05 Tue-Sat | Opus | $10-15 |
 
-로그: `~/Library/Logs/stock-monitor/`
+추가 cron:
+- `portfolio_tracker.py --snapshot`: 15:36 (KR 마감), 05:01 (US 마감)
+- `price_alerts.py`: 5분 간격 (개장 시장만)
+
+로그: `~/logs/stock-monitor/`
 
 ## 가격 알림
 
 - `alert_config.json` — 종목별 손절선/목표가/급등락 임계값 편집
 - `price_alerts.py` — 알림 스크립트 (개장 중인 시장만 조회)
-- macOS 알림 + Glass/Sosumi 사운드
+- Linux: `notify-send`, macOS: `osascript` 자동 감지
 - `.alert_state.json`으로 일일 중복 방지
 
 수동 실행: `.venv/bin/python3 price_alerts.py`
 
 ## 종목 추가/변경 시
-1. 매매기록.xlsx에 행 추가 (매수/매도)
-2. 주가_업데이트.py의 SECTOR 딕셔너리에 티커→섹터 매핑 추가
-3. mcp_server.py의 SECTOR 딕셔너리에도 동일하게 추가
-4. alert_config.json에 알림 설정 추가
+1. `portfolio_db.py`의 SECTOR 딕셔너리에 티커→섹터 매핑 추가 (이것 하나로 모든 스크립트에 반영)
+2. `portfolio_db.py`에서 `add_trade()` 또는 MCP `record_trade()` 로 매매기록 추가
+3. `alert_config.json`에 알림 설정 추가
+4. `news_monitor.py`의 TICKER_MARKET, TICKER_NAMES에 추가
+5. CLAUDE.md의 버티컬 맵 + 한국시장 보유 종목 테이블 업데이트
+6. 검증: `python3 portfolio_db.py --holdings` → 종목 수 확인
 
 ---
 
@@ -811,7 +820,7 @@ prompt:
 ## 5단계: 변수 치환
 
 - `{today}`: 오늘 날짜 (YYYY-MM-DD)
-- `{tickers}`: 매매기록.xlsx의 보유 종목 티커 (005930.KS, 000660.KS, 035420.KS, 195940.KQ, 429760.KS, 1377.T, BAYN.DE, BOTZ, CVX, GOOGL, MSFT, NVDA, PLTR, QCOM, SLV, TSLA, UNH, WRB, XOM)
+- `{tickers}`: portfolio.db의 보유 종목 티커 (005930.KS, 000660.KS, 035420.KS, 195940.KQ, 429760.KS, 1377.T, BAYN.DE, BOTZ, CVX, GOOGL, MSFT, NVDA, PLTR, QCOM, SLV, TSLA, UNH, WRB, XOM)
 - `{총액}`, `{손익}`, `{손익률}`: 주가_업데이트.py 결과
 - `{원달러}`, `{원엔}`, `{원유로}`: 환율
 
