@@ -232,19 +232,250 @@ def cmd_validate() -> str:
     return format_result(result)
 
 
+def cmd_report() -> str:
+    """최신 보고서 핵심 요약 (3줄)."""
+    report_dir = STOCK_DIR / "보고서"
+    reports = sorted(report_dir.glob("20*.md"))
+    if not reports:
+        return "보고서 없음"
+
+    latest = reports[-1]
+    text = latest.read_text(encoding='utf-8')
+    filename = latest.stem  # 2026-02-15_2349
+
+    lines = [f"*최신 보고서* ({filename})"]
+    lines.append("")
+
+    # 총 평가금액 추출
+    for line in text.split('\n')[:5]:
+        if '총 평가' in line or '총평가' in line or '총 손익' in line:
+            lines.append(line.strip().lstrip('> '))
+            break
+
+    # 핵심 이벤트 테이블 헤더 찾아서 3줄
+    in_events = False
+    event_count = 0
+    for line in text.split('\n'):
+        if '핵심 이벤트' in line:
+            in_events = True
+            lines.append("")
+            lines.append("*핵심 이벤트:*")
+            continue
+        if in_events and '|' in line and '---' not in line and '시간' not in line:
+            parts = [p.strip() for p in line.split('|') if p.strip()]
+            if len(parts) >= 3:
+                lines.append(f"  {parts[0]} {parts[1]} {parts[3] if len(parts) > 3 else ''}")
+                event_count += 1
+                if event_count >= 5:
+                    break
+
+    # 액션 플랜
+    in_action = False
+    action_count = 0
+    for line in text.split('\n'):
+        if '액션 플랜' in line and '오늘' in line:
+            in_action = True
+            lines.append("")
+            lines.append("*액션 플랜:*")
+            continue
+        if in_action and '|' in line and '---' not in line and '액션' not in line:
+            parts = [p.strip() for p in line.split('|') if p.strip()]
+            if len(parts) >= 3:
+                lines.append(f"  {parts[0]} {parts[1]} {parts[2]}")
+                action_count += 1
+                if action_count >= 5:
+                    break
+
+    if len(lines) <= 2:
+        # 최소 첫 10줄이라도 표시
+        for line in text.split('\n')[:10]:
+            if line.strip():
+                lines.append(line.strip())
+
+    return '\n'.join(lines)
+
+
+def cmd_alert() -> str:
+    """알림 설정 상태 요약."""
+    config_path = STOCK_DIR / "alert_config.json"
+    if not config_path.exists():
+        return "alert_config.json 없음"
+
+    config = json.loads(config_path.read_text(encoding='utf-8'))
+    alerts = config.get('alerts', {})
+
+    lines = ["*알림 설정 현황*", ""]
+    lines.append("`종목     손절      목표     스윙`")
+    lines.append("`" + "-" * 35 + "`")
+
+    for ticker, cfg in sorted(alerts.items()):
+        name = cfg.get('name', ticker)[:6]
+        sl = cfg.get('stop_loss')
+        tgt = cfg.get('target')
+        swing = cfg.get('swing_pct', 3.0)
+
+        if '.KS' in ticker or '.KQ' in ticker:
+            sl_s = f"₩{sl:,.0f}" if sl else "미설정"
+            tgt_s = f"₩{tgt:,.0f}" if tgt else "미설정"
+        else:
+            sl_s = f"${sl:.1f}" if sl else "미설정"
+            tgt_s = f"${tgt:.1f}" if tgt else "미설정"
+
+        lines.append(f"`{name:<6} {sl_s:>8} {tgt_s:>8} {swing:.0f}%`")
+
+    # 마지막 업데이트
+    updated = config.get('_updated', '?')
+    lines.append(f"\n_업데이트: {updated}_")
+
+    return '\n'.join(lines)
+
+
+def cmd_snapshot() -> str:
+    """실시간 포트폴리오 스냅샷 (현재가 기준)."""
+    sys.path.insert(0, str(STOCK_DIR))
+    from portfolio_tracker import take_snapshot
+
+    snap = take_snapshot()
+    total = snap['total_krw']
+    pnl = snap['total_pnl_krw']
+    pnl_pct = snap['total_pnl_pct']
+
+    sign = '+' if pnl >= 0 else ''
+    lines = [f"*포트폴리오 스냅샷* ({snap['date']} {snap['time']})"]
+    lines.append(f"총 평가: ₩{total:,}")
+    lines.append(f"손익: {sign}₩{pnl:,} ({sign}{pnl_pct}%)")
+
+    # 환율
+    fx = snap.get('fx', {})
+    if fx.get('USD'):
+        lines.append(f"환율: ${fx['USD']:,.0f}")
+
+    # 종목별 (상위 5 + 하위 3)
+    tickers = snap.get('tickers', {})
+    if tickers:
+        sorted_t = sorted(tickers.items(), key=lambda x: x[1].get('pnl_pct', 0), reverse=True)
+        lines.append("")
+        lines.append("*상위:*")
+        for t, d in sorted_t[:5]:
+            s = '+' if d['pnl_pct'] >= 0 else ''
+            lines.append(f"  {t}: {s}{d['pnl_pct']}%")
+        lines.append("*하위:*")
+        for t, d in sorted_t[-3:]:
+            s = '+' if d['pnl_pct'] >= 0 else ''
+            lines.append(f"  {t}: {s}{d['pnl_pct']}%")
+
+    return '\n'.join(lines)
+
+
+def cmd_monitor() -> str:
+    """Tier 1 감시병 최신 데이터 요약."""
+    data_dir = STOCK_DIR / "data" / "monitor"
+    if not data_dir.exists():
+        return "감시 데이터 없음"
+
+    latest = data_dir / "latest.json"
+    if not latest.exists():
+        return "latest.json 없음"
+
+    snap = json.loads(latest.read_text(encoding='utf-8'))
+    lines = [f"*감시병 현황* ({snap.get('timestamp', '?')[:16]})"]
+
+    # 트리거 (긴급 이벤트)
+    triggers = snap.get('triggers', [])
+    if triggers:
+        lines.append(f"\n*긴급 {len(triggers)}건:*")
+        for t in triggers[:5]:
+            ticker = t.get('ticker', '?')
+            detail = t.get('detail', '') or t.get('event', '') or t.get('type', '알림')
+            lines.append(f"  {ticker}: {detail}")
+    else:
+        lines.append("긴급 이벤트 없음")
+
+    # 가격 요약
+    prices = snap.get('prices', {})
+    if prices:
+        movers = []
+        for ticker, pdata in prices.items():
+            change = pdata.get('change_pct', 0)
+            if abs(change) >= 1.0:
+                movers.append((ticker, change))
+        if movers:
+            lines.append(f"\n*변동 종목:*")
+            for t, c in sorted(movers, key=lambda x: abs(x[1]), reverse=True)[:5]:
+                s = '+' if c >= 0 else ''
+                lines.append(f"  {t}: {s}{c:.1f}%")
+
+    # 이벤트
+    events = snap.get('events', [])
+    if events:
+        lines.append(f"\n*예정 이벤트:*")
+        for e in events[:3]:
+            lines.append(f"  D-{e.get('days_until', '?')} {e.get('name', '?')}")
+
+    return '\n'.join(lines)
+
+
+def cmd_accuracy() -> str:
+    """예측 정확도 대시보드."""
+    thesis_path = STOCK_DIR / "investment_thesis.json"
+    if not thesis_path.exists():
+        return "투자 테제 파일 없음"
+
+    thesis = json.loads(thesis_path.read_text(encoding='utf-8'))
+    acc = thesis.get('accuracy', {})
+    tickers_data = thesis.get('tickers', {})
+
+    total = acc.get('total_predictions', 0)
+    dir_rate = acc.get('direction_rate', 0)
+    avg_err = acc.get('avg_error_pct', 0)
+    bias = acc.get('systematic_bias', 'none')
+    worst = acc.get('worst_tickers', [])
+    best = acc.get('best_tickers', [])
+
+    lines = ["*예측 정확도 대시보드*", ""]
+    lines.append(f"총 예측: {total}건")
+    lines.append(f"방향 적중률: {dir_rate:.1f}%")
+    lines.append(f"평균 오차: {avg_err:.1f}%")
+    lines.append(f"체계적 편향: {bias}")
+
+    if best:
+        lines.append(f"\n최고 종목: {', '.join(best[:3])}")
+    if worst:
+        lines.append(f"최악 종목: {', '.join(worst[:3])}")
+
+    # 종목별 확신도 순위
+    conv_list = [(t, td.get('conviction', 5)) for t, td in tickers_data.items()]
+    conv_list.sort(key=lambda x: x[1], reverse=True)
+    lines.append("\n*확신도 순위:*")
+    for t, c in conv_list:
+        bar = '█' * c + '░' * (10 - c)
+        lines.append(f"`{t:<10} {bar} {c}/10`")
+
+    weekly_rate = acc.get('weekly_direction_rate')
+    if weekly_rate is not None:
+        weekly_date = acc.get('weekly_date', '?')
+        lines.append(f"\n주간 방향적중: {weekly_rate:.0f}% ({weekly_date})")
+
+    return '\n'.join(lines)
+
+
 def cmd_help() -> str:
     """명령어 목록."""
-    return """📋 *명령어 목록*
+    return """*명령어 목록*
 
-/t — 투자 테제 요약
 /p — 전 종목 현재가
-/p NVDA — 종목 상세
-/pf — 포트폴리오 성과
+/p NVDA — 종목 상세 (테제 포함)
+/pf — 포트폴리오 성과 추이
+/s — 실시간 스냅샷
+/t — 투자 테제 요약
+/r — 최신 보고서 핵심
+/a — 알림 설정 현황
+/m — 감시병 현황
+/ac — 예측 정확도
 /w — 주간 예측 회고
 /v — 보고서 검증
-/h — 도움말
 
-_긴 명령어도 가능: /thesis /price /portfolio /weekly /validate /help_"""
+_풀 명령어: /price /portfolio /snapshot /thesis /report /alert /monitor /accuracy /weekly /validate_"""
 
 
 COMMANDS = {
@@ -252,6 +483,11 @@ COMMANDS = {
     '/t': lambda args: cmd_thesis(),
     '/p': lambda args: cmd_price(args),
     '/pf': lambda args: cmd_portfolio(),
+    '/s': lambda args: cmd_snapshot(),
+    '/r': lambda args: cmd_report(),
+    '/a': lambda args: cmd_alert(),
+    '/m': lambda args: cmd_monitor(),
+    '/ac': lambda args: cmd_accuracy(),
     '/w': lambda args: cmd_weekly(),
     '/v': lambda args: cmd_validate(),
     '/h': lambda args: cmd_help(),
@@ -259,6 +495,11 @@ COMMANDS = {
     '/thesis': lambda args: cmd_thesis(),
     '/price': lambda args: cmd_price(args),
     '/portfolio': lambda args: cmd_portfolio(),
+    '/snapshot': lambda args: cmd_snapshot(),
+    '/report': lambda args: cmd_report(),
+    '/alert': lambda args: cmd_alert(),
+    '/monitor': lambda args: cmd_monitor(),
+    '/accuracy': lambda args: cmd_accuracy(),
     '/weekly': lambda args: cmd_weekly(),
     '/validate': lambda args: cmd_validate(),
     '/help': lambda args: cmd_help(),

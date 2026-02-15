@@ -19,7 +19,7 @@ import yfinance as yf
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(BASE_DIR, "alert_config.json")
 STATE_FILE = os.path.join(BASE_DIR, ".alert_state.json")
-LOG_DIR = os.path.expanduser("~/Library/Logs/stock-monitor")
+LOG_DIR = os.path.expanduser("~/logs/stock-monitor")
 
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
