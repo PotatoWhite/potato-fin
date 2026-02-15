@@ -412,8 +412,8 @@ def main():
     parser = argparse.ArgumentParser(description='보고서 가격 검증 및 자동 보정')
     parser.add_argument('report', help='보고서 파일 경로')
     parser.add_argument('--fix', action='store_true', help='자동 보정 적용')
-    parser.add_argument('--threshold', type=float, default=3.0,
-                        help='보정 임계값 (%%, 기본: 3.0)')
+    parser.add_argument('--threshold', type=float, default=5.0,
+                        help='보정 임계값 (%%, 기본: 5.0)')
     args = parser.parse_args()
 
     report_path = args.report
