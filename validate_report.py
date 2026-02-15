@@ -24,7 +24,7 @@ STOCK_DIR = Path(__file__).resolve().parent
 # ── 보유 종목 ──────────────────────────────────────────────
 TICKERS_US = ["NVDA", "MSFT", "GOOGL", "TSLA", "PLTR", "CVX", "XOM",
               "UNH", "WRB", "QCOM", "BOTZ", "SLV", "BAYN.DE", "1377.T"]
-TICKERS_KR = ["NAVER", "HK이노엔", "035420", "195940", "429760"]
+TICKERS_KR = ["NAVER", "HK이노엔", "삼성전자", "SK하이닉스", "035420", "195940", "429760", "005930", "000660"]
 
 # ── US 보고서 필수 섹션 ────────────────────────────────────
 US_REQUIRED_SECTIONS = [

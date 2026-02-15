@@ -25,6 +25,8 @@ REPORT_DIR = os.path.join(BASE_DIR, "보고서")
 UPDATE_SCRIPT = os.path.join(BASE_DIR, "주가_업데이트.py")
 
 SECTOR = {
+    "005930.KS": "IT",
+    "000660.KS": "IT",
     "035420.KS": "IT",
     "195940.KQ": "헬스케어",
     "429760.KS": "ETF/인덱스",

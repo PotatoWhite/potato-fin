@@ -30,6 +30,26 @@
     }
   },
   "alerts": {
+    "005930.KS": {
+      "market": "KR",
+      "name": "삼성전자",
+      "stop_loss": null,
+      "target": null,
+      "swing_pct": 3.0,
+      "note": "신규 편입 1주. 다음 보고서에서 기술분석 후 손절/목표 설정.",
+      "_updated": "2026-02-16",
+      "_source": "수동 편입"
+    },
+    "000660.KS": {
+      "market": "KR",
+      "name": "SK하이닉스",
+      "stop_loss": null,
+      "target": null,
+      "swing_pct": 5.0,
+      "note": "신규 편입 1주. 다음 보고서에서 기술분석 후 손절/목표 설정.",
+      "_updated": "2026-02-16",
+      "_source": "수동 편입"
+    },
     "035420.KS": {
       "market": "KR",
       "name": "NAVER",

@@ -30,7 +30,7 @@ KST = timezone(timedelta(hours=9))
 # 보유 종목 (US + KR + JP + EU)
 TICKERS_US = ["NVDA", "MSFT", "GOOGL", "TSLA", "PLTR", "CVX", "XOM",
               "UNH", "WRB", "QCOM", "BOTZ", "SLV"]
-TICKERS_KR = ["035420.KS", "195940.KQ", "429760.KS"]
+TICKERS_KR = ["005930.KS", "000660.KS", "035420.KS", "195940.KQ", "429760.KS"]
 TICKERS_JP = ["1377.T"]
 TICKERS_EU = ["BAYN.DE"]
 ALL_TICKERS = TICKERS_US + TICKERS_KR + TICKERS_JP + TICKERS_EU
@@ -41,6 +41,7 @@ TICKER_NAMES = {
     "TSLA": "테슬라", "PLTR": "팔란티어", "CVX": "셰브론",
     "XOM": "엑슨모빌", "UNH": "유나이티드헬스", "WRB": "버클리",
     "QCOM": "퀄컴", "BOTZ": "로보틱스", "SLV": "은",
+    "005930.KS": "삼성전자", "000660.KS": "SK하이닉스",
     "035420.KS": "NAVER", "195940.KQ": "HK이노엔",
     "429760.KS": "PLUS S&P500", "1377.T": "사카타종묘",
     "BAYN.DE": "바이엘",
