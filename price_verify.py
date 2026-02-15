@@ -55,39 +55,12 @@ YF_TO_REPORT = {
     '035420.KS': 'NAVER', '195940.KQ': 'HK이노엔', '429760.KS': '429760.KS',
 }
 
-# 매입 단가를 알기 위해 매매기록에서 읽기
+# 매입 단가를 SQLite에서 읽기
 def _load_cost_basis() -> dict:
-    """매매기록.xlsx에서 종목별 평균 매입단가 로드."""
+    """SQLite에서 종목별 평균 매입단가 로드."""
     try:
-        import openpyxl
-        wb = openpyxl.load_workbook(STOCK_DIR / "매매기록.xlsx", data_only=True)
-        ws = wb.active
-        holdings = {}  # yf_symbol → {qty, total_cost}
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            if not row or not row[0]:
-                break
-            ticker = str(row[1]).strip() if row[1] else ''
-            action = str(row[3]).strip() if row[3] else ''
-            qty = float(row[4]) if row[4] else 0
-            price = float(row[5]) if row[5] else 0
-            yf = TICKER_YF.get(ticker, ticker)
-            if yf not in holdings:
-                holdings[yf] = {'qty': 0, 'total_cost': 0}
-            if '매수' in action:
-                holdings[yf]['qty'] += qty
-                holdings[yf]['total_cost'] += qty * price
-            elif '매도' in action:
-                avg = holdings[yf]['total_cost'] / holdings[yf]['qty'] if holdings[yf]['qty'] else 0
-                holdings[yf]['qty'] -= qty
-                holdings[yf]['total_cost'] -= qty * avg
-        result = {}
-        for yf, h in holdings.items():
-            if h['qty'] > 0:
-                result[yf] = {
-                    'qty': h['qty'],
-                    'avg_cost': h['total_cost'] / h['qty'],
-                }
-        return result
+        from portfolio_db import get_cost_basis
+        return get_cost_basis()
     except Exception:
         return {}
 

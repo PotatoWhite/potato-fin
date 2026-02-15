@@ -17,35 +17,12 @@ import yfinance as yf
 from dateutil.relativedelta import relativedelta
 from mcp.server.fastmcp import FastMCP
 
+from portfolio_db import load_portfolio as db_load_portfolio, add_trade as db_add_trade, SECTOR
+
 # === 경로 설정 ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TRADE_FILE = os.path.join(BASE_DIR, "매매기록.xlsx")
-EXCEL_FILE = os.path.join(BASE_DIR, "주식.xlsx")
 REPORT_DIR = os.path.join(BASE_DIR, "보고서")
 UPDATE_SCRIPT = os.path.join(BASE_DIR, "주가_업데이트.py")
-
-SECTOR = {
-    "005930.KS": "IT",
-    "000660.KS": "IT",
-    "035420.KS": "IT",
-    "195940.KQ": "헬스케어",
-    "429760.KS": "ETF/인덱스",
-    "1377.T": "소비재",
-    "BAYN.DE": "헬스케어",
-    "BOTZ": "ETF/테마",
-    "CRWV": "IT",
-    "CVX": "에너지",
-    "GOOGL": "IT",
-    "MSFT": "IT",
-    "NVDA": "IT",
-    "PLTR": "IT",
-    "QCOM": "IT",
-    "SLV": "ETF/원자재",
-    "TSLA": "자동차",
-    "UNH": "헬스케어",
-    "WRB": "금융",
-    "XOM": "에너지",
-}
 
 mcp = FastMCP("stock-portfolio")
 
@@ -54,35 +31,12 @@ mcp = FastMCP("stock-portfolio")
 
 
 def load_portfolio():
-    """매매기록.xlsx에서 현재 포트폴리오 계산 (매수/매도 반영)"""
-    df = pd.read_excel(TRADE_FILE, sheet_name="매매기록")
-    holdings = {}
-    for _, row in df.iterrows():
-        ticker = row["티커"]
-        if ticker not in holdings:
-            holdings[ticker] = {
-                "종목명": row["종목명"],
-                "티커": ticker,
-                "통화": row["통화"],
-                "수량": 0,
-                "매입금액": 0.0,
-            }
-        if row["매매구분"] == "매수":
-            holdings[ticker]["수량"] += row["수량"]
-            holdings[ticker]["매입금액"] += row["금액"]
-        elif row["매매구분"] == "매도":
-            h = holdings[ticker]
-            if h["수량"] > 0:
-                avg_cost = h["매입금액"] / h["수량"]
-                h["수량"] -= row["수량"]
-                h["매입금액"] = round(avg_cost * h["수량"], 2)
-    portfolio = []
-    for t, h in holdings.items():
-        if h["수량"] > 0:
-            portfolio.append(
-                (h["종목명"], h["티커"], h["통화"], h["수량"], round(h["매입금액"], 2))
-            )
-    return portfolio
+    """SQLite에서 현재 포트폴리오 계산 → 기존 튜플 포맷으로 반환"""
+    portfolio_dicts = db_load_portfolio()
+    return [
+        (h["name"], h["ticker"], h["currency"], h["qty"], h["cost"])
+        for h in portfolio_dicts
+    ]
 
 
 def fetch_prices(portfolio):
@@ -346,9 +300,11 @@ def record_trade(
         "메모": 메모,
     }
 
-    df = pd.read_excel(TRADE_FILE, sheet_name="매매기록")
-    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-    df.to_excel(TRADE_FILE, sheet_name="매매기록", index=False)
+    db_add_trade(
+        date=new_row["날짜"], name=종목명, ticker=티커,
+        currency=통화, action=매매구분, qty=수량,
+        price=단가, amount=금액, note=메모 or None,
+    )
 
     return json.dumps(
         {"status": "OK", "message": f"{종목명} {매매구분} {수량}주 @ {단가} {통화} 기록 완료", "record": new_row},

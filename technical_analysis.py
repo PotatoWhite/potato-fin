@@ -24,23 +24,13 @@ import pandas as pd
 import yfinance as yf
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TRADE_FILE = os.path.join(BASE_DIR, "매매기록.xlsx")
 ALERT_CONFIG = os.path.join(BASE_DIR, "alert_config.json")
 
 
 def get_portfolio_tickers():
-    """매매기록에서 보유 종목 티커 추출"""
-    df = pd.read_excel(TRADE_FILE, sheet_name="매매기록")
-    holdings = {}
-    for _, row in df.iterrows():
-        ticker = row["티커"]
-        if ticker not in holdings:
-            holdings[ticker] = {"name": row["종목명"], "qty": 0}
-        if row["매매구분"] == "매수":
-            holdings[ticker]["qty"] += row["수량"]
-        elif row["매매구분"] == "매도":
-            holdings[ticker]["qty"] -= row["수량"]
-    return {t: h for t, h in holdings.items() if h["qty"] > 0}
+    """SQLite에서 보유 종목 티커 추출"""
+    from portfolio_db import get_tickers
+    return get_tickers()
 
 
 def fetch_history(tickers, period="6mo"):

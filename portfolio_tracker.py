@@ -21,35 +21,11 @@ import yfinance as yf
 
 STOCK_DIR = Path(__file__).resolve().parent
 HISTORY_FILE = STOCK_DIR / "data" / "portfolio_history.json"
-TRADE_FILE = STOCK_DIR / "매매기록.xlsx"
 KST = timezone(timedelta(hours=9))
 
 FX_PAIRS = ['USDKRW=X', 'JPYKRW=X', 'EURKRW=X']
 
-
-def load_portfolio() -> list[dict]:
-    """매매기록.xlsx에서 현재 보유 종목 계산."""
-    df = pd.read_excel(TRADE_FILE, sheet_name='매매기록')
-
-    holdings = {}
-    for _, row in df.iterrows():
-        ticker = row['티커']
-        if ticker not in holdings:
-            holdings[ticker] = {
-                'name': row['종목명'], 'ticker': ticker, 'currency': row['통화'],
-                'qty': 0, 'cost': 0.0,
-            }
-        if row['매매구분'] == '매수':
-            holdings[ticker]['qty'] += row['수량']
-            holdings[ticker]['cost'] += row['금액']
-        elif row['매매구분'] == '매도':
-            h = holdings[ticker]
-            if h['qty'] > 0:
-                avg = h['cost'] / h['qty']
-                h['qty'] -= row['수량']
-                h['cost'] = round(avg * h['qty'], 2)
-
-    return [h for h in holdings.values() if h['qty'] > 0]
+from portfolio_db import load_portfolio
 
 
 def fetch_prices(portfolio: list[dict]) -> tuple[dict, dict]:
