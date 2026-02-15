@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Environment / Secrets
+.env
+
+# Runtime state (generated, not config)
+.alert_state.json
+.tech_scores.json
+
+# Data (generated, can be recreated)
+data/
+
+# Reports (generated output)
+보고서/
+
+# OS
+.DS_Store
+
+# Legacy xlsx (primary is now SQLite)
+주식.xlsx
+주식_통합.xlsx
