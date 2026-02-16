@@ -68,38 +68,51 @@ from agents.router import route
 # ── 메시지 전송 ────────────────────────────────────────
 
 def send_message(text: str, chat_id: str = None):
-    """텔레그램 메시지 전송 (4096자 제한 분할)."""
+    """텔레그램 메시지 전송 (4096자 제한 분할, 네트워크 재시도)."""
     if not text or not text.strip():
         return
     chat_id = chat_id or CHAT_ID
     MAX_LEN = 4000
     chunks = [text[i:i+MAX_LEN] for i in range(0, len(text), MAX_LEN)]
+
+    def _send_with_retry(data: bytes, max_retries: int = 3) -> bool:
+        """네트워크 일시 장애 대응 재시도."""
+        import socket
+        for attempt in range(max_retries):
+            req = urllib.request.Request(
+                f"{API}/sendMessage", data=data,
+                headers={"Content-Type": "application/json"})
+            try:
+                urllib.request.urlopen(req, timeout=10)
+                return True
+            except (socket.error, OSError) as e:
+                # Network unreachable, connection refused 등
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # 1초, 2초, 4초 지수 백오프
+                    continue
+                return False
+            except Exception:
+                return False
+        return False
+
     for chunk in chunks:
+        # Markdown 시도
         data = json.dumps({
             "chat_id": chat_id,
             "text": chunk,
             "parse_mode": "Markdown",
             "disable_web_page_preview": True,
         }).encode('utf-8')
-        req = urllib.request.Request(
-            f"{API}/sendMessage", data=data,
-            headers={"Content-Type": "application/json"})
-        try:
-            urllib.request.urlopen(req, timeout=10)
-        except Exception:
-            # Markdown 파싱 실패 시 plain text로 재시도
-            data = json.dumps({
-                "chat_id": chat_id,
-                "text": chunk,
-                "disable_web_page_preview": True,
-            }).encode('utf-8')
-            req = urllib.request.Request(
-                f"{API}/sendMessage", data=data,
-                headers={"Content-Type": "application/json"})
-            try:
-                urllib.request.urlopen(req, timeout=10)
-            except Exception:
-                pass
+        if _send_with_retry(data):
+            continue
+
+        # Markdown 실패 시 plain text 재시도
+        data = json.dumps({
+            "chat_id": chat_id,
+            "text": chunk,
+            "disable_web_page_preview": True,
+        }).encode('utf-8')
+        _send_with_retry(data)
 
 
 # ── 컨텍스트 빌드 ──────────────────────────────────────
