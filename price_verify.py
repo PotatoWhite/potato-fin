@@ -9,6 +9,7 @@ Usage:
     python3 price_verify.py <report_path>                    # 검증만 (dry-run)
     python3 price_verify.py <report_path> --fix              # 검증 + 자동 보정
     python3 price_verify.py <report_path> --fix --threshold 5  # 5% 이상만 보정
+    python3 price_verify.py --pre-check                       # 보고서 작성 전 사전 가격 검증
 """
 
 import argparse
@@ -16,6 +17,7 @@ import json
 import os
 import re
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 STOCK_DIR = Path(__file__).resolve().parent
@@ -450,13 +452,93 @@ def format_result(result: dict) -> str:
     return '\n'.join(lines)
 
 
+def pre_check_prices(threshold_pct: float = 10.0) -> dict:
+    """보고서 작성 전 사전 가격 검증.
+
+    yfinance에서 전 종목 가격을 조회하고, investment_thesis.json에 저장된
+    마지막 현재가와 비교하여 큰 오차(>threshold_pct)가 있으면 경고한다.
+
+    Returns:
+        {
+            'actual_prices': {yf: float},
+            'thesis_prices': {yf: float},
+            'warnings': [{yf, name, thesis_price, actual_price, diff_pct}],
+        }
+    """
+    thesis_file = STOCK_DIR / "investment_thesis.json"
+    actual = fetch_actual_prices()
+    thesis_prices = {}
+
+    if thesis_file.exists():
+        try:
+            thesis = json.loads(thesis_file.read_text(encoding='utf-8'))
+            for yf, tdata in thesis.get('tickers', {}).items():
+                last_price = tdata.get('last_price')
+                if last_price:
+                    thesis_prices[yf] = last_price
+        except Exception as e:
+            print(f"[WARN] investment_thesis.json 읽기 실패: {e}", file=sys.stderr)
+
+    warnings = []
+    for yf, act in actual.items():
+        if yf in thesis_prices:
+            thesis_p = thesis_prices[yf]
+            diff_pct = abs(act - thesis_p) / thesis_p * 100
+            if diff_pct > threshold_pct:
+                warnings.append({
+                    'yf': yf,
+                    'name': YF_TO_REPORT.get(yf, yf),
+                    'thesis_price': thesis_p,
+                    'actual_price': act,
+                    'diff_pct': diff_pct,
+                    'currency': CURRENCY.get(yf, '$'),
+                })
+
+    return {
+        'actual_prices': actual,
+        'thesis_prices': thesis_prices,
+        'warnings': sorted(warnings, key=lambda x: x['diff_pct'], reverse=True),
+    }
+
+
+def format_pre_check_result(result: dict) -> str:
+    """사전 검증 결과 요약."""
+    warns = result['warnings']
+    if not warns:
+        return '[사전 가격 검증] PASS — 모든 종목 정상 (투자테제 대비)'
+
+    lines = [f'[사전 가격 검증] ⚠️ {len(warns)}건 가격 급변 감지 (투자테제 대비):']
+    for w in warns:
+        old = _fmt_price(w['thesis_price'], w['currency'])
+        act = _fmt_price(w['actual_price'], w['currency'])
+        lines.append(
+            f'  {w["name"]:>8s}: 테제 {old} → 현재 {act} '
+            f'(변동 {w["diff_pct"]:.1f}%)')
+    lines.append('\n⚠️ Claude가 학습 데이터의 과거 가격을 사용할 수 있음.')
+    lines.append('   보고서 작성 시 위 종목의 가격을 신중히 확인할 것.')
+    return '\n'.join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(description='보고서 가격 검증 및 자동 보정')
-    parser.add_argument('report', help='보고서 파일 경로')
+    parser.add_argument('report', nargs='?', help='보고서 파일 경로')
     parser.add_argument('--fix', action='store_true', help='자동 보정 적용')
     parser.add_argument('--threshold', type=float, default=5.0,
                         help='보정 임계값 (%%, 기본: 5.0)')
+    parser.add_argument('--pre-check', action='store_true',
+                        help='보고서 작성 전 사전 가격 검증 (투자테제 vs 현재가)')
     args = parser.parse_args()
+
+    # 사전 검증 모드
+    if args.pre_check:
+        print('[사전 가격 검증] 보고서 작성 전 가격 급변 감지 중...')
+        result = pre_check_prices(threshold_pct=10.0)
+        print(format_pre_check_result(result))
+        sys.exit(1 if result['warnings'] else 0)
+
+    # 보고서 검증 모드
+    if not args.report:
+        parser.error('보고서 파일 경로가 필요합니다 (또는 --pre-check 사용)')
 
     report_path = args.report
     if not Path(report_path).exists():

@@ -26,6 +26,8 @@ import urllib.request
 import urllib.parse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import subprocess
+import threading
 
 STOCK_DIR = Path(__file__).resolve().parent
 KST = timezone(timedelta(hours=9))
@@ -41,6 +43,60 @@ if _env_file.exists():
 BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+CLAUDE_PATH = "/home/linuxbrew/.linuxbrew/bin/claude"
+
+# 실행 가능한 스크립트 작업 정의
+EXECUTE_TASKS = {
+    'update': {
+        'cmd': [str(STOCK_DIR / '.venv/bin/python3'), str(STOCK_DIR / '주가_업데이트.py')],
+        'name': '주가 업데이트',
+        'timeout': 120,
+        'bg': False,
+    },
+    'us_report': {
+        'cmd': ['bash', str(STOCK_DIR / 'run_report.sh')],
+        'name': 'US 보고서 생성',
+        'timeout': 900,
+        'bg': True,
+        'cost': '$10-15 (Opus)',
+    },
+    'korea_report': {
+        'cmd': ['bash', str(STOCK_DIR / 'run_korea_report.sh')],
+        'name': '한국 보고서 생성',
+        'timeout': 900,
+        'bg': True,
+        'cost': '$8-10 (Opus)',
+    },
+    'premarket': {
+        'cmd': ['bash', str(STOCK_DIR / 'run_premarket.sh')],
+        'name': '장전 브리핑',
+        'timeout': 600,
+        'bg': True,
+        'cost': '$3-4 (Sonnet)',
+    },
+    'midcheck': {
+        'cmd': ['bash', str(STOCK_DIR / 'run_midcheck.sh')],
+        'name': '장중 체크',
+        'timeout': 600,
+        'bg': True,
+        'cost': '$3-4 (Sonnet)',
+    },
+    'alert_run': {
+        'cmd': [str(STOCK_DIR / '.venv/bin/python3'), str(STOCK_DIR / 'price_alerts.py')],
+        'name': '알림 체크',
+        'timeout': 60,
+        'bg': False,
+    },
+    'monitor_run': {
+        'cmd': [str(STOCK_DIR / '.venv/bin/python3'), str(STOCK_DIR / 'news_monitor.py')],
+        'name': '뉴스 감시',
+        'timeout': 120,
+        'bg': False,
+    },
+}
+
+# 대화 이력 버퍼 (메모리, 재시작 시 초기화)
+CONVERSATION_BUFFER = {}  # chat_id → [{'role': 'user'|'assistant', 'text': str}]
 
 
 def send_message(text: str, chat_id: str = CHAT_ID):
@@ -479,7 +535,19 @@ def cmd_help() -> str:
 "삼성전자" → 가격 조회
 "포트폴리오 얼마야" → 스냅샷
 "NVDA 어때" → 종목 상세
-기타 → Claude가 해석"""
+
+*실행 명령:*
+"업데이트해" → 주가 갱신
+"보고서 만들어" → US 보고서 ($10-15)
+"한국 보고서 만들어" → 한국 보고서 ($8-10)
+"장전 브리핑" → 프리마켓 ($3-4)
+"장중 체크" → 미드체크 ($3-4)
+
+*개선 명령:*
+"XX 개선해" → 코드 분석 + 자동 수정
+"XX 추가해" → 기능 구현
+"XX 수정해" → 버그 수정
+(Claude Sonnet이 파일 편집, $5 이내)"""
 
 
 COMMANDS = {
@@ -511,9 +579,179 @@ COMMANDS = {
 }
 
 
-def handle_freetext(text: str) -> str | None:
-    """자유 텍스트 → 기존 명령 매핑 또는 Claude 처리."""
+# ── 메시지 분류 & 실행/개발 핸들러 ──────────────────────────
+
+
+def detect_execute(text: str) -> str | None:
+    """실행 가능한 스크립트 명령인지 감지. 순서 중요 (구체적→일반적)."""
+    # 한국 보고서 (가장 구체적)
+    if ('한국' in text or 'kr' in text) and ('보고서' in text or '리포트' in text):
+        if any(v in text for v in ['만들', '써', '생성', '돌려', '실행']):
+            return 'korea_report'
+
+    # US 보고서
+    if ('보고서' in text or '리포트' in text):
+        if any(v in text for v in ['만들', '써', '생성', '돌려', '실행']):
+            return 'us_report'
+
+    # 장전/장중
+    if any(kw in text for kw in ['장전 브리핑', '프리마켓 브리핑', '장전 분석']):
+        return 'premarket'
+    if any(kw in text for kw in ['장중 체크', '장중 점검', '미드체크']):
+        return 'midcheck'
+
+    # 주가 업데이트
+    if any(kw in text for kw in ['주가 업데이트', '주가 갱신', '가격 업데이트', '가격 갱신']):
+        return 'update'
+    if text.strip() in ['업데이트해', '업데이트 해', '갱신해', '업뎃해', '업데이트', '갱신']:
+        return 'update'
+
+    # 알림/감시 실행
+    if ('알림' in text or '알럿' in text) and any(v in text for v in ['실행', '체크해', '확인해', '돌려']):
+        return 'alert_run'
+    if ('뉴스' in text or '감시' in text) and any(v in text for v in ['실행해', '수집해', '돌려']):
+        return 'monitor_run'
+
+    return None
+
+
+def detect_develop(text: str) -> bool:
+    """개선/수정/개발 지시인지 감지."""
+    develop_kws = [
+        '개선해', '개선 해', '수정해', '수정 해', '고쳐', '바꿔',
+        '추가해', '추가 해', '변경해', '변경 해', '업그레이드',
+        '리팩토', '최적화해', '개발해', '기능 추가', '버그 수정',
+        '코드 수정', '코드 변경', '만들어줘', '만들어 줘',
+        '개선할', '수정할', '고칠', '바꿀',
+    ]
+    return any(kw in text for kw in develop_kws)
+
+
+def handle_execute(action: str, chat_id: str) -> str | None:
+    """스크립트 실행 명령 처리."""
+    task = EXECUTE_TASKS.get(action)
+    if not task:
+        return f"알 수 없는 작업: {action}"
+
+    name = task['name']
+    cost = task.get('cost', '')
+    cost_note = f" (예상 비용: {cost})" if cost else ""
+
+    if task.get('bg'):
+        # 백그라운드 실행 (오래 걸리는 작업)
+        send_message(f"⏳ {name} 시작{cost_note}...\n완료되면 알려드리겠습니다.", chat_id)
+
+        def _run():
+            try:
+                result = subprocess.run(
+                    task['cmd'],
+                    capture_output=True, text=True,
+                    timeout=task['timeout'],
+                    cwd=str(STOCK_DIR),
+                    env={**os.environ,
+                         'PATH': f"{STOCK_DIR / '.venv/bin'}:/home/linuxbrew/.linuxbrew/bin:{os.environ.get('PATH', '')}"}
+                )
+                if result.returncode == 0:
+                    output = result.stdout.strip()
+                    if len(output) > 2000:
+                        output = output[-2000:]
+                    send_message(f"✅ {name} 완료\n\n{output}", chat_id)
+                else:
+                    err = result.stderr.strip()[-500:] if result.stderr else "알 수 없는 오류"
+                    send_message(f"❌ {name} 실패 (code {result.returncode})\n{err}", chat_id)
+            except subprocess.TimeoutExpired:
+                send_message(f"⏰ {name} 시간 초과 ({task['timeout']//60}분)", chat_id)
+            except Exception as e:
+                send_message(f"❌ {name} 오류: {e}", chat_id)
+
+        threading.Thread(target=_run, daemon=True).start()
+        return None  # 이미 상태 메시지 전송
+
+    else:
+        # 동기 실행 (짧은 작업)
+        try:
+            result = subprocess.run(
+                task['cmd'],
+                capture_output=True, text=True,
+                timeout=task['timeout'],
+                cwd=str(STOCK_DIR),
+                env={**os.environ,
+                     'PATH': f"{STOCK_DIR / '.venv/bin'}:{os.environ.get('PATH', '')}"}
+            )
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                if len(output) > 3000:
+                    output = output[-3000:]
+                return f"✅ {name} 완료\n\n{output}"
+            else:
+                err = result.stderr.strip()[-500:] if result.stderr else "알 수 없는 오류"
+                return f"❌ {name} 실패\n{err}"
+        except subprocess.TimeoutExpired:
+            return f"⏰ {name} 시간 초과"
+        except Exception as e:
+            return f"❌ {name} 오류: {e}"
+
+
+def handle_develop(text: str, chat_id: str) -> str | None:
+    """개선/수정 명령 → Claude Sonnet with tools (백그라운드)."""
+    send_message(f"🔧 작업 분석 중...\n\"{text}\"", chat_id)
+
+    prompt = f"""사용자가 텔레그램으로 다음 지시를 내렸다:
+"{text}"
+
+작업 디렉토리: {STOCK_DIR}
+먼저 CLAUDE.md를 읽고 프로젝트 구조를 파악하라.
+지시를 수행하라. 결과를 간결하게 요약하라 (텔레그램 메시지용, 3000자 이내):
+1. 무엇을 변경했는지 (파일명 + 변경 내용)
+2. 왜 변경했는지
+3. 테스트 결과
+
+주의:
+- git push, rm -rf, git reset --hard 등 파괴적 명령 금지
+- git commit은 하지 말 것 (사용자가 확인 후 결정)
+- 기존 기능을 깨뜨리지 말 것
+- 실행 중인 서비스(systemd, cron)에 영향을 주지 말 것"""
+
+    def _run():
+        try:
+            result = subprocess.run(
+                [CLAUDE_PATH, '-p', prompt,
+                 '--model', 'sonnet',
+                 '--max-budget-usd', '5',
+                 '--permission-mode', 'bypassPermissions'],
+                capture_output=True, text=True, timeout=300,
+                cwd=str(STOCK_DIR),
+                env={**os.environ}
+            )
+            response = result.stdout.strip()
+            if response:
+                if len(response) > 3500:
+                    response = response[:3500] + "\n\n... (truncated)"
+                send_message(f"✅ 작업 완료\n\n{response}", chat_id)
+            else:
+                err = result.stderr.strip()[:500] if result.stderr else "출력 없음"
+                send_message(f"⚠️ 완료 (출력 없음)\n{err}", chat_id)
+        except subprocess.TimeoutExpired:
+            send_message("⏰ 작업 시간 초과 (5분). 작업이 너무 복잡할 수 있습니다.", chat_id)
+        except Exception as e:
+            send_message(f"❌ 작업 실패: {e}", chat_id)
+
+    threading.Thread(target=_run, daemon=True).start()
+    return None  # 이미 상태 메시지 전송
+
+
+def handle_freetext(text: str, chat_id: str = CHAT_ID) -> str | None:
+    """자유 텍스트 → 분류 → 적절한 핸들러."""
     low = text.lower().strip()
+
+    # 0) 실행 명령 감지 (스크립트 실행)
+    action = detect_execute(low)
+    if action:
+        return handle_execute(action, chat_id)
+
+    # 0b) 개선/개발 명령 감지 (Claude with tools)
+    if detect_develop(low):
+        return handle_develop(text, chat_id)
 
     # 1) 종목명/티커 매칭 → 가격 조회
     sys.path.insert(0, str(STOCK_DIR))
@@ -577,73 +815,106 @@ def handle_freetext(text: str) -> str | None:
     if any(kw in low for kw in ['전종목', '전체', '다보여', '종목들']):
         return cmd_price('')
 
-    # 4) Claude CLI로 처리 (haiku, 저비용)
-    return handle_with_claude(text)
+    # 4) Claude 대화 (금융자산 관리자)
+    return handle_conversation(text, chat_id)
 
 
-def handle_with_claude(text: str) -> str:
-    """Claude CLI (haiku)로 자유 텍스트 처리."""
-    import subprocess
+def _build_portfolio_context() -> str:
+    """포트폴리오 + 테제 + 감시 데이터 → 대화 컨텍스트."""
+    parts = []
+    sys.path.insert(0, str(STOCK_DIR))
 
-    CLAUDE_PATH = "/home/linuxbrew/.linuxbrew/bin/claude"
-
-    # 간단한 컨텍스트 구성
-    context_parts = []
-
-    # 최신 포트폴리오 요약
+    # 포트폴리오 요약
     try:
-        sys.path.insert(0, str(STOCK_DIR))
         from portfolio_tracker import format_summary
-        context_parts.append(format_summary())
+        parts.append(format_summary())
     except Exception:
         pass
 
-    # 최신 감시 데이터
+    # 투자 테제 요약
+    try:
+        from update_thesis import format_thesis_summary
+        parts.append(format_thesis_summary())
+    except Exception:
+        pass
+
+    # 감시 데이터
     latest = STOCK_DIR / "data" / "monitor" / "latest.json"
     if latest.exists():
         try:
             snap = json.loads(latest.read_text(encoding='utf-8'))
             triggers = snap.get('triggers', [])
             if triggers:
-                context_parts.append(f"최근 트리거: {json.dumps(triggers[:3], ensure_ascii=False)}")
+                parts.append(f"긴급 트리거: {json.dumps(triggers[:5], ensure_ascii=False)}")
+            events = snap.get('events', [])
+            if events:
+                parts.append(f"예정 이벤트: {json.dumps(events[:5], ensure_ascii=False)}")
         except Exception:
             pass
 
-    context = '\n'.join(context_parts)
+    return '\n---\n'.join(parts)
 
-    prompt = f"""사용자 메시지: {text}
 
-당신은 주식 포트폴리오 관리 봇이다. 사용자의 요청에 간결하게 답하라.
-텔레그램으로 답하므로 4000자 이내, 핵심만.
+def handle_conversation(text: str, chat_id: str = CHAT_ID) -> str:
+    """Claude Sonnet 대화 — 금융자산 관리자 역할."""
+    buf = CONVERSATION_BUFFER.setdefault(chat_id, [])
+
+    # 대화 이력 (최근 6개 = 3 왕복)
+    history_lines = []
+    for m in buf[-6:]:
+        role = '사용자' if m['role'] == 'user' else '관리자'
+        history_lines.append(f"{role}: {m['text']}")
+    history = '\n'.join(history_lines)
+
+    context = _build_portfolio_context()
+
+    prompt = f"""당신은 사용자의 전담 금융자산 관리자다.
+사용자와 텔레그램으로 자연스럽게 대화한다.
 
 포트폴리오 현황:
 {context}
 
-매수/매도 지시인 경우: 종목, 수량, 가격 조건을 확인하고, 실행 가능 여부를 답하라. 실제 매매는 수행하지 않고 계획만 제시.
-질문인 경우: 포트폴리오 데이터를 기반으로 답하라.
-의견/코멘트인 경우: 인지했음을 확인하고, 다음 보고서에 반영할 점을 정리하라."""
+최근 대화:
+{history}
+
+사용자: {text}
+
+규칙:
+- 텔레그램이므로 3000자 이내, 핵심 위주로 답하라
+- 포트폴리오 데이터와 수치를 기반으로 구체적으로 답하라
+- 매수/매도 의견을 구할 때: 종목, 근거(기술적+펀더), 리스크, 구체적 가격대를 제시하라
+- 시장 상황 질문: 최신 데이터 기반으로 답하되, 모르면 모른다고 하라
+- 이전 대화 맥락을 유지하라
+- "모니터링 중", "지켜보겠습니다" 같은 회피성 답변 금지. 판단을 내려라.
+- 반말/존댓말은 사용자의 톤에 맞춰라
+- 한국어로 답하라"""
 
     try:
         result = subprocess.run(
             [CLAUDE_PATH, '-p', prompt,
-             '--model', 'haiku',
-             '--max-budget-usd', '0.15',
+             '--model', 'sonnet',
+             '--max-budget-usd', '1',
              '--permission-mode', 'bypassPermissions',
              '--allowedTools', ''],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=90,
             cwd=str(STOCK_DIR),
-            env={**os.environ, 'CLAUDECODE': ''}
+            env={**os.environ}
         )
         response = result.stdout.strip()
         if response:
+            # 대화 이력 저장
+            buf.append({'role': 'user', 'text': text[:300]})
+            buf.append({'role': 'assistant', 'text': response[:300]})
+            while len(buf) > 20:
+                buf.pop(0)
             return response
         if result.stderr:
             return f"처리 중 오류: {result.stderr[:200]}"
-        return "메시지 수신. 다음 보고서에 반영하겠습니다."
+        return "메시지를 이해했지만 답을 생성하지 못했습니다. 다시 시도해 주세요."
     except subprocess.TimeoutExpired:
-        return "처리 시간 초과. 메시지는 기록되었습니다."
+        return "응답 시간 초과. 다시 시도해 주세요."
     except Exception as e:
-        return f"Claude 처리 실패: {e}"
+        return f"처리 실패: {e}"
 
 
 def handle_message(text: str, chat_id: str) -> str | None:
@@ -668,7 +939,7 @@ def handle_message(text: str, chat_id: str) -> str | None:
 
     # 2) 자유 텍스트
     try:
-        return handle_freetext(text)
+        return handle_freetext(text, chat_id)
     except Exception as e:
         return f"처리 오류: {e}"
 
@@ -699,9 +970,20 @@ def poll_updates():
                     continue
 
                 print(f"[BOT] {chat_id}: {text}")
+
+                # 대화 이력에 사용자 메시지 저장 (명령어 포함 모두)
+                buf = CONVERSATION_BUFFER.setdefault(chat_id, [])
+                buf.append({'role': 'user', 'text': text[:300]})
+                while len(buf) > 20:
+                    buf.pop(0)
+
                 response = handle_message(text, chat_id)
                 if response:
                     send_message(response, chat_id)
+                    # 대화 이력에 봇 응답 저장
+                    buf.append({'role': 'assistant', 'text': response[:300]})
+                    while len(buf) > 20:
+                        buf.pop(0)
 
         except KeyboardInterrupt:
             print("\n[BOT] 종료")

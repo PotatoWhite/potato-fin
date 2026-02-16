@@ -100,8 +100,27 @@ def check_alerts():
 
     logging.info(f"조회 대상: {list(active_tickers.keys())}")
 
-    # 일괄 조회
+    # 일괄 조회 (시장시간 외 종목 제외)
     ticker_list = list(active_tickers.keys())
+    # 일본 주식(.T)은 장 시작 전(08:00 JST/07:00 KST ~ 09:00 JST/08:00 KST)과
+    # 장 마감 후(15:00 JST/14:00 KST ~ 23:59 JST/22:59 KST)에 yfinance 조회 불가
+    # → 조회 실패 에러 방지를 위해 장 시간 내에만 조회
+    jp_tickers = [t for t in ticker_list if t.endswith('.T')]
+    if jp_tickers:
+        # 일본 시간 08:00~15:00 KST = 09:00~16:00 JST (실제로는 15:00 마감)
+        # KST 기준으로는 08:00~14:00 내에만 조회
+        jp_market = markets.get("JP", {})
+        if not is_market_open(jp_market, now):
+            # 현재 일본 장이 닫혀있으면 .T 종목 제외
+            ticker_list = [t for t in ticker_list if t not in jp_tickers]
+            logging.info(f"일본 장 마감 — {jp_tickers} 조회 건너뜀")
+            for t in jp_tickers:
+                active_tickers.pop(t, None)
+
+    if not ticker_list:
+        logging.info("조회 대상 없음 (시장시간 외)")
+        return
+
     try:
         data = yf.download(ticker_list, period="1d", progress=False)
     except Exception as e:
