@@ -119,23 +119,41 @@ def check_alerts():
         logging.info("조회 대상 없음 (시장시간 외)")
         return
 
+    import contextlib
+    import io
+
+    # yfinance "possibly delisted" stderr 노이즈를 로그로 흡수
+    _stderr_buf = io.StringIO()
     try:
-        data = yf.download(ticker_list, period="1d", progress=False)
+        with contextlib.redirect_stderr(_stderr_buf):
+            data = yf.download(ticker_list, period="1d", progress=False, auto_adjust=True)
     except Exception as e:
         logging.error(f"데이터 조회 실패: {e}")
         return
+    finally:
+        noise = _stderr_buf.getvalue().strip()
+        if noise:
+            logging.debug(f"yfinance stderr: {noise}")
 
     for ticker, alert_cfg in active_tickers.items():
         name = alert_cfg["name"]
         try:
+            # 단일/복수 티커 모두 MultiIndex 방식으로 통일 접근
             if len(ticker_list) == 1:
-                close = float(data["Close"].iloc[-1])
-                open_price = float(data["Open"].iloc[-1])
+                col = data["Close"]
+                if hasattr(col, "columns"):
+                    # MultiIndex: columns = (ticker,)
+                    close = float(col.iloc[:, 0].dropna().iloc[-1])
+                    open_col = data["Open"].iloc[:, 0].dropna()
+                else:
+                    close = float(col.dropna().iloc[-1])
+                    open_col = data["Open"].dropna()
+                open_price = float(open_col.iloc[-1])
             else:
-                close = float(data["Close"][ticker].iloc[-1])
-                open_price = float(data["Open"][ticker].iloc[-1])
+                close = float(data["Close"][ticker].dropna().iloc[-1])
+                open_price = float(data["Open"][ticker].dropna().iloc[-1])
         except Exception:
-            logging.warning(f"{ticker} 가격 조회 실패")
+            logging.warning(f"{ticker} 가격 조회 실패 (데이터 없음)")
             continue
 
         sent_key = f"{ticker}_{now.strftime('%Y%m%d')}"

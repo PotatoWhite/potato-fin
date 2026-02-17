@@ -948,6 +948,7 @@ def poll_updates():
     """텔레그램 Long Polling으로 메시지 수신."""
     print(f"[BOT] 시작 — {datetime.now(KST).strftime('%Y-%m-%d %H:%M KST')}")
     offset = 0
+    _err_count = 0  # 연속 오류 횟수 (backoff용)
 
     while True:
         try:
@@ -955,6 +956,8 @@ def poll_updates():
             req = urllib.request.Request(url)
             with urllib.request.urlopen(req, timeout=35) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
+
+            _err_count = 0  # 성공 시 리셋
 
             if not data.get('ok'):
                 time.sleep(5)
@@ -989,8 +992,12 @@ def poll_updates():
             print("\n[BOT] 종료")
             break
         except Exception as e:
-            print(f"[BOT] 오류: {e}")
-            time.sleep(5)
+            _err_count += 1
+            # 연속 오류 시 지수 백오프 (최대 120초), 첫 오류만 출력
+            backoff = min(5 * (2 ** min(_err_count - 1, 4)), 120)
+            if _err_count == 1 or _err_count % 10 == 0:
+                print(f"[BOT] 오류 ({_err_count}회): {e} — {backoff}초 후 재시도")
+            time.sleep(backoff)
 
 
 def main():

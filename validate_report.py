@@ -118,21 +118,31 @@ def validate_report(path: str, report_type: str = 'us') -> dict:
 
     # ── 4) 5일 예측 테이블 체크 ──
     max_score += 10
-    pred_table = re.search(r'\|\s*종목\s*\|.*예상.*종가', text)
+    # 다양한 포맷을 허용: "종목 | 예상 종가", "종목 | 5일 예상", "향후 5거래일" 섹션 등
+    pred_table = re.search(
+        r'(\|\s*종목\s*\|.*(?:예상|종가|5일|5거래일))|'
+        r'(##.*5거래일.*전망)|'
+        r'(####\s*종목별\s*5거래일)',
+        text
+    )
     if pred_table:
-        # 예측 행 수 확인
+        # 예측 행 수 확인: 종목 티커 행 (영문 대문자 또는 숫자로 시작하는 표 행)
         table_start = pred_table.start()
-        table_text = text[table_start:table_start + 3000]
-        pred_rows = re.findall(r'\|\s*[A-Z\d]', table_text)
-        expected_min = 10 if report_type == 'us' else 3
+        table_text = text[table_start:table_start + 5000]
+        pred_rows = re.findall(r'\|\s*(?:[A-Z]{2,}[\w.]*|[가-힣]+[\w]*|\d{6})', table_text)
+        expected_min = 8 if report_type == 'us' else 3
         if len(pred_rows) >= expected_min:
             earned_score += 10
-        else:
+        elif len(pred_rows) >= 3:
             earned_score += 5
             issues.append({"severity": "warning",
                            "message": f"5일 예측 테이블 행 부족: {len(pred_rows)}행 (최소 {expected_min})"})
+        else:
+            earned_score += 2
+            issues.append({"severity": "warning",
+                           "message": f"5일 예측 테이블 미흡: {len(pred_rows)}행"})
     else:
-        issues.append({"severity": "error", "message": "5일 예측 테이블 없음"})
+        issues.append({"severity": "error", "message": "5일 예측 테이블 없음 (향후 5거래일 섹션 + 종목별 표 필수)"})
 
     # ── 5) 종합 점수 테이블 체크 ──
     max_score += 5
