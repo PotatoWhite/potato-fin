@@ -1,0 +1,31 @@
+services:
+  potato-fin:
+    build: .
+    container_name: potato-fin
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Seoul
+      - STOCK_DIR=/app
+      - PYTHON=/usr/local/bin/python3
+      - CLAUDE=/usr/local/bin/claude
+      - LOG_DIR=/app/logs
+    env_file:
+      - .env
+    volumes:
+      - ./portfolio.db:/app/portfolio.db
+      - ./investment_thesis.json:/app/investment_thesis.json
+      - ./alert_config.json:/app/alert_config.json
+      - ./portfolio_config.json:/app/portfolio_config.json
+      - ./schedule_override.json:/app/schedule_override.json
+      - ./data:/app/data
+      - ./보고서:/app/보고서
+      - ./logs:/app/logs
+      - claude-auth:/home/app/.claude
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import requests; requests.get('https://api.telegram.org')"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+
+volumes:
+  claude-auth:

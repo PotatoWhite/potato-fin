@@ -1,0 +1,76 @@
+# ============================================
+# 주식 포트폴리오 자동화 스케줄 (KST)
+# ============================================
+
+STOCK_DIR=/home/bravopotato/Spaces/finspace/potato-fin
+PYTHON=/home/bravopotato/Spaces/finspace/potato-fin/.venv/bin/python3
+LOG_DIR=/home/bravopotato/logs/stock-monitor
+
+# ============================================
+# Tier 1: 뉴스/가격 감시병 (무료, 30분마다)
+# ============================================
+# 한국장 09:00~15:30 KST (월~금, 30분 간격)
+0,30 9-15 * * 1-5 cd $STOCK_DIR && $PYTHON news_monitor.py >> $LOG_DIR/monitor.log 2>&1
+
+# 유럽장 17:00~01:30 KST (월~금, 30분 간격)
+0,30 17-23 * * 1-5 cd $STOCK_DIR && $PYTHON news_monitor.py >> $LOG_DIR/monitor.log 2>&1
+0,30 0-1 * * 2-6 cd $STOCK_DIR && $PYTHON news_monitor.py >> $LOG_DIR/monitor.log 2>&1
+
+# 미국장 22:30~06:00 KST (화~토, 30분 간격) — 프리마켓 포함
+0,30 22-23 * * 1-5 cd $STOCK_DIR && $PYTHON news_monitor.py >> $LOG_DIR/monitor.log 2>&1
+0,30 0-6 * * 2-6 cd $STOCK_DIR && $PYTHON news_monitor.py >> $LOG_DIR/monitor.log 2>&1
+
+# ============================================
+# Tier 2: 장전 브리핑 (Sonnet $3-4, 21:30 KST)
+# ============================================
+# 미국장 오픈 1시간 전 (월~금)
+30 21 * * 1-5 cd $STOCK_DIR && bash run_premarket.sh >> $LOG_DIR/premarket.log 2>&1
+
+# ============================================
+# Tier 2: 장중 체크포인트 (Sonnet $3-4, 01:00 KST)
+# ============================================
+# 미국장 오픈 1.5시간 후 (화~토)
+0 1 * * 2-6 cd $STOCK_DIR && bash run_midcheck.sh >> $LOG_DIR/midcheck.log 2>&1
+
+# ============================================
+# Tier 3: 심층 보고서 (Opus $10-15, 마감 후)
+# ============================================
+# 한국시장 보고서 15:40 KST (월~금)
+40 15 * * 1-5 cd $STOCK_DIR && bash run_korea_report.sh >> $LOG_DIR/korea_report.log 2>&1
+
+# 미국시장 보고서 05:05 KST (화~토)
+5 5 * * 2-6 cd $STOCK_DIR && bash run_report.sh >> $LOG_DIR/us_report.log 2>&1
+
+# ============================================
+# 기존: 주가 업데이트 + 가격 알림
+# ============================================
+# 한국장 마감 15:35 KST (월~금)
+35 15 * * 1-5 cd $STOCK_DIR && $PYTHON 주가_업데이트.py >> $LOG_DIR/update_kr.log 2>&1
+
+# 일본장 마감 16:05 KST (월~금)
+5 16 * * 1-5 cd $STOCK_DIR && $PYTHON 주가_업데이트.py >> $LOG_DIR/update_jp.log 2>&1
+
+# 미국장 마감 05:00 KST (화~토)
+0 5 * * 2-6 cd $STOCK_DIR && $PYTHON 주가_업데이트.py >> $LOG_DIR/update_us.log 2>&1
+
+# 가격 알림 (5분 간격)
+*/5 * * * * cd $STOCK_DIR && $PYTHON price_alerts.py >> $LOG_DIR/alerts.log 2>&1
+
+# ============================================
+# 개선 루프: 자기개선 (Sonnet $2×2, 08:00/14:00 KST)
+# ============================================
+# 운영 데이터 분석 → improve 브랜치 → 검증 → main 머지 (월~금)
+0 8 * * 1-5 cd $STOCK_DIR && bash run_improve.sh >> $LOG_DIR/improve.log 2>&1
+0 14 * * 1-5 cd $STOCK_DIR && bash run_improve.sh >> $LOG_DIR/improve.log 2>&1
+
+# 경제지표 기반 동적 스케줄링 (매일 20:00)
+0 20 * * 1-5 cd $STOCK_DIR && $PYTHON schedule_reports.py >> $LOG_DIR/schedule.log 2>&1
+
+# ============================================
+# 포트폴리오 스냅샷 (매 장 마감 후)
+# ============================================
+# 한국장 마감 15:36 KST (월~금)
+36 15 * * 1-5 cd $STOCK_DIR && $PYTHON portfolio_tracker.py --snapshot >> $LOG_DIR/portfolio.log 2>&1
+# 미국장 마감 05:01 KST (화~토)
+1 5 * * 2-6 cd $STOCK_DIR && $PYTHON portfolio_tracker.py --snapshot >> $LOG_DIR/portfolio.log 2>&1
+0 23 20 2 * /home/bravopotato/Spaces/finspace/potato-fin/run_report.sh # auto-econ-report Q4 2025 GDP 속보치 (Advance Estimate) (HIGH)

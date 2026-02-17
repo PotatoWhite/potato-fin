@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+보고서/
+data/
+logs/
+*.db
+.env
+assistant.db
+.alert_state.json
+.tech_scores.json

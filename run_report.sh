@@ -7,10 +7,10 @@ set -euo pipefail
 # 중첩 세션 방지 해제 (Claude Code 내부에서 실행 시)
 unset CLAUDECODE 2>/dev/null || true
 
-STOCK_DIR="/home/bravopotato/Spaces/finspace/potato-fin"
-PYTHON="$STOCK_DIR/.venv/bin/python3"
-CLAUDE="/home/linuxbrew/.linuxbrew/bin/claude"
-LOG_DIR="$HOME/logs/stock-monitor"
+STOCK_DIR="${STOCK_DIR:-/home/bravopotato/Spaces/finspace/potato-fin}"
+PYTHON="${PYTHON:-$STOCK_DIR/.venv/bin/python3}"
+CLAUDE="${CLAUDE:-/home/linuxbrew/.linuxbrew/bin/claude}"
+LOG_DIR="${LOG_DIR:-$HOME/logs/stock-monitor}"
 
 mkdir -p "$LOG_DIR"
 

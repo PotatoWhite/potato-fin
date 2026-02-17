@@ -4,10 +4,10 @@
 
 set -euo pipefail
 
-STOCK_DIR="/home/bravopotato/Spaces/finspace/potato-fin"
-PYTHON="$STOCK_DIR/.venv/bin/python3"
+STOCK_DIR="${STOCK_DIR:-/home/bravopotato/Spaces/finspace/potato-fin}"
+PYTHON="${PYTHON:-$STOCK_DIR/.venv/bin/python3}"
 SCRIPT="$STOCK_DIR/주가_업데이트.py"
-LOG_DIR="$HOME/logs/stock-monitor"
+LOG_DIR="${LOG_DIR:-$HOME/logs/stock-monitor}"
 
 mkdir -p "$LOG_DIR"
 

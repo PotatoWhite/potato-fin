@@ -4,8 +4,8 @@
 
 set -euo pipefail
 
-STOCK_DIR="/home/bravopotato/Spaces/finspace/potato-fin"
-PYTHON="$STOCK_DIR/.venv/bin/python3"
+STOCK_DIR="${STOCK_DIR:-/home/bravopotato/Spaces/finspace/potato-fin}"
+PYTHON="${PYTHON:-$STOCK_DIR/.venv/bin/python3}"
 set -a
 . "$STOCK_DIR/.env"
 set +a
@@ -52,5 +52,5 @@ else
     echo "텔레그램 전송 완료: $REPORT_FILE (PDF 변환 실패)"
 fi
 
-# 4) Ubuntu 데스크톱 알림
-notify-send -i document "${LABEL} 생성 완료" "$REPORT_NAME" 2>/dev/null || true
+# 4) 데스크톱 알림 (Docker에는 notify-send 없음)
+command -v notify-send >/dev/null 2>&1 && notify-send -i document "${LABEL} 생성 완료" "$REPORT_NAME" 2>/dev/null || true

@@ -9,10 +9,10 @@ set -euo pipefail
 
 unset CLAUDECODE 2>/dev/null || true
 
-STOCK_DIR="/home/bravopotato/Spaces/finspace/potato-fin"
-PYTHON="$STOCK_DIR/.venv/bin/python3"
-CLAUDE="/home/linuxbrew/.linuxbrew/bin/claude"
-LOG_DIR="$HOME/logs/stock-monitor"
+STOCK_DIR="${STOCK_DIR:-/home/bravopotato/Spaces/finspace/potato-fin}"
+PYTHON="${PYTHON:-$STOCK_DIR/.venv/bin/python3}"
+CLAUDE="${CLAUDE:-/home/linuxbrew/.linuxbrew/bin/claude}"
+LOG_DIR="${LOG_DIR:-$HOME/logs/stock-monitor}"
 
 mkdir -p "$LOG_DIR"
 
@@ -80,8 +80,8 @@ curl -s -X POST "$API/sendMessage" \
 
 echo "$(date): 텔레그램 전송 완료" >> "$LOG_FILE"
 
-# Ubuntu 알림
-notify-send -i dialog-warning "이벤트 플래시" "트리거 감지 — 텔레그램 확인" 2>/dev/null || true
+# 데스크톱 알림 (Docker에는 notify-send 없음)
+command -v notify-send >/dev/null 2>&1 && notify-send -i dialog-warning "이벤트 플래시" "트리거 감지 — 텔레그램 확인" 2>/dev/null || true
 
 # 30일 이상 된 로그 삭제
 find "$LOG_DIR" -name "flash_*.log" -mtime +30 -delete 2>/dev/null || true
