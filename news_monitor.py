@@ -477,6 +477,7 @@ def collect_news(tickers):
                         "keyword": kw,
                         "headline": article.get("headline", ""),
                         "source": article.get("source", ""),
+                        "url": article.get("url", ""),
                         "datetime": article.get("datetime", 0),
                     })
                     score += weight  # weight is negative
@@ -488,6 +489,7 @@ def collect_news(tickers):
                         "keyword": kw,
                         "headline": article.get("headline", ""),
                         "source": article.get("source", ""),
+                        "url": article.get("url", ""),
                         "datetime": article.get("datetime", 0),
                     })
                     score += weight  # weight is positive
@@ -499,7 +501,7 @@ def collect_news(tickers):
             "positive": positive[:5],
             "score": round(max(-5, min(5, score)), 1),
             "top_headlines": [
-                {"headline": a.get("headline", ""), "source": a.get("source", "")}
+                {"headline": a.get("headline", ""), "source": a.get("source", ""), "url": a.get("url", "")}
                 for a in articles[:5]
             ],
         }
@@ -517,13 +519,14 @@ def collect_news(tickers):
                         "keyword": kw,
                         "headline": article.get("headline", ""),
                         "source": article.get("source", ""),
+                        "url": article.get("url", ""),
                     })
                     break
         results["_market"] = {
             "article_count": len(gen_news or []),
             "urgent": market_urgent[:5],
             "top_headlines": [
-                {"headline": a.get("headline", ""), "source": a.get("source", "")}
+                {"headline": a.get("headline", ""), "source": a.get("source", ""), "url": a.get("url", "")}
                 for a in (gen_news or [])[:5]
             ],
         }
@@ -694,6 +697,130 @@ def check_upcoming_events():
     return alerts
 
 
+# ─── 방향 전환 감지 ───
+
+THESIS_FILE = os.path.join(BASE_DIR, "investment_thesis.json")
+NEWS_REPORT_DIR = os.path.join(BASE_DIR, "보고서", "뉴스")
+
+
+def load_thesis():
+    """investment_thesis.json 로드"""
+    if os.path.exists(THESIS_FILE):
+        with open(THESIS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"tickers": {}}
+
+
+def save_thesis(thesis):
+    """investment_thesis.json 저장"""
+    with open(THESIS_FILE, "w", encoding="utf-8") as f:
+        json.dump(thesis, f, ensure_ascii=False, indent=2)
+
+
+def check_direction_change(ticker, news_score, prices):
+    """investment_thesis.json의 현재 direction과 비교하여 전환 여부 판단
+
+    Returns:
+        tuple: (changed: bool, prev_direction: str, new_direction: str)
+    """
+    thesis = load_thesis()
+    current = thesis.get("tickers", {}).get(ticker, {})
+    prev_direction = current.get("direction", "neutral")
+
+    change_pct = prices.get(ticker, {}).get("change_pct", 0)
+
+    new_direction = prev_direction  # 기본: 유지
+    if news_score <= -3.0 and change_pct < -3.0:
+        new_direction = "bearish"
+    elif news_score >= 3.0 and change_pct > 3.0:
+        new_direction = "bullish"
+    elif news_score <= -2.0 and prev_direction == "bullish":
+        new_direction = "bearish"  # 강세→약세 전환
+    elif news_score >= 2.0 and prev_direction == "bearish":
+        new_direction = "bullish"  # 약세→강세 전환
+
+    changed = new_direction != prev_direction
+    return changed, prev_direction, new_direction
+
+
+def handle_direction_changes(news, prices, state):
+    """모든 종목의 방향 전환 감지 + 리포트 생성
+
+    Returns:
+        list: 방향 전환 정보 [{ticker, prev, new, score, change_pct}]
+    """
+    kst = timezone(timedelta(hours=9))
+    now = datetime.now(kst)
+    changes = []
+
+    for ticker, ndata in news.items():
+        if ticker.startswith("_"):
+            continue
+        score = ndata.get("score", 0)
+        if score == 0:
+            continue
+
+        changed, prev_dir, new_dir = check_direction_change(ticker, score, prices)
+        name = TICKER_NAMES.get(ticker, ticker)
+        change_pct = prices.get(ticker, {}).get("change_pct", 0)
+
+        if changed:
+            changes.append({
+                "ticker": ticker,
+                "name": name,
+                "prev": prev_dir,
+                "new": new_dir,
+                "score": score,
+                "change_pct": change_pct,
+            })
+
+            # investment_thesis.json 업데이트
+            thesis = load_thesis()
+            if ticker in thesis.get("tickers", {}):
+                thesis["tickers"][ticker]["direction"] = new_dir
+                thesis["tickers"][ticker]["last_change"] = now.strftime("%Y-%m-%d")
+                thesis["tickers"][ticker]["change_reason"] = (
+                    f"방향 전환 ({prev_dir}→{new_dir}): "
+                    f"뉴스 점수 {score:+.1f}, 가격 {change_pct:+.1f}%"
+                )
+                save_thesis(thesis)
+                logging.info(f"테제 업데이트: {ticker} {prev_dir}→{new_dir}")
+
+            # news_report.py 호출 → 상세 리포트 생성
+            try:
+                report_script = os.path.join(BASE_DIR, "news_report.py")
+                if os.path.exists(report_script):
+                    # 뉴스 데이터를 임시 파일로 전달
+                    report_data = {
+                        "ticker": ticker,
+                        "name": name,
+                        "prev_direction": prev_dir,
+                        "new_direction": new_dir,
+                        "news_score": score,
+                        "change_pct": change_pct,
+                        "urgent": ndata.get("urgent", []),
+                        "positive": ndata.get("positive", []),
+                        "top_headlines": ndata.get("top_headlines", []),
+                        "price": prices.get(ticker, {}).get("price", 0),
+                        "timestamp": now.strftime("%Y-%m-%d %H:%M"),
+                    }
+                    trigger_file = os.path.join(DATA_DIR, ".news_report_trigger.json")
+                    with open(trigger_file, "w", encoding="utf-8") as f:
+                        json.dump(report_data, f, ensure_ascii=False, indent=2)
+
+                    python = os.path.join(BASE_DIR, ".venv", "bin", "python3")
+                    subprocess.Popen(
+                        [python, report_script, trigger_file],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    logging.info(f"뉴스 리포트 생성 트리거: {ticker}")
+            except Exception as e:
+                logging.error(f"뉴스 리포트 트리거 실패 ({ticker}): {e}")
+
+    return changes
+
+
 # ─── 메인 로직 ───
 
 def run_monitor():
@@ -791,8 +918,9 @@ def run_monitor():
             triggers.append(trigger)
 
             top = ndata["urgent"][0]
+            url_line = f"\n   📎 {top['url']}" if top.get("url") else ""
             loss_alerts.append(
-                f"*{name}* — {top['headline'][:45]}\n   키워드: `{top['keyword']}`"
+                f"🔴 *{name}* — {top['headline'][:45]}\n   악재: {top['keyword']}{url_line}"
             )
             logging.info(f"손실 위험: {ticker} {top['keyword']}")
 
@@ -810,8 +938,9 @@ def run_monitor():
             triggers.append(trigger)
 
             top = ndata["positive"][0]
+            url_line = f"\n   📎 {top['url']}" if top.get("url") else ""
             gain_alerts.append(
-                f"*{name}* — {top['headline'][:45]}\n   키워드: `{top['keyword']}`"
+                f"🟢 *{name}* — {top['headline'][:45]}\n   호재: {top['keyword']}{url_line}"
             )
             logging.info(f"수익 기회: {ticker} {top['keyword']}")
 
@@ -833,11 +962,28 @@ def run_monitor():
     if event_alerts:
         triggers.extend(event_alerts)
 
+    # ─── 방향 전환 감지 ───
+    direction_changes = handle_direction_changes(news, prices, state)
+    if direction_changes:
+        logging.info(f"방향 전환 감지: {len(direction_changes)}건")
+
     # ─── 텔레그램 알림 (임팩트별 분류) ───
-    has_alerts = loss_alerts or gain_alerts or watch_alerts or event_alerts
+    has_alerts = loss_alerts or gain_alerts or watch_alerts or event_alerts or direction_changes
 
     if has_alerts:
         msg_parts = [f"*감시 알림* ({timestamp})"]
+
+        # 방향 전환 (최우선 표시)
+        if direction_changes:
+            msg_parts.append("")
+            msg_parts.append("🔄 *방향 전환 감지 — 리포트 생성 중*")
+            for dc in direction_changes:
+                arrow = "📈" if dc["new"] == "bullish" else "📉" if dc["new"] == "bearish" else "➡️"
+                msg_parts.append(
+                    f"{arrow} *{dc['name']}* ({dc['ticker']}): "
+                    f"{dc['prev']}→{dc['new']} "
+                    f"(뉴스 {dc['score']:+.1f}, 가격 {dc['change_pct']:+.1f}%)"
+                )
 
         if loss_alerts:
             msg_parts.append("")
@@ -861,6 +1007,22 @@ def run_monitor():
                 d = ea.get("days_until", "?")
                 prefix = "‼️" if d <= 3 else "📌" if d <= 7 else "📆"
                 msg_parts.append(f"{prefix} D-{d} *{ea['name']}* — {ea.get('note', '')[:40]}")
+
+        # 방향 유지 종목 요약 (뉴스 있는 종목만)
+        maintained = []
+        for ticker, ndata in news.items():
+            if ticker.startswith("_"):
+                continue
+            if ndata.get("score", 0) != 0 and ticker not in [dc["ticker"] for dc in direction_changes]:
+                thesis = load_thesis()
+                direction = thesis.get("tickers", {}).get(ticker, {}).get("direction", "neutral")
+                name = TICKER_NAMES.get(ticker, ticker)
+                maintained.append(f"  {name}: 방향 유지 ({direction})")
+
+        if maintained:
+            msg_parts.append("")
+            msg_parts.append("📋 *방향 유지*")
+            msg_parts.extend(maintained[:5])
 
         send_telegram("\n".join(msg_parts))
 
@@ -892,6 +1054,7 @@ def run_monitor():
         "news": news,
         "calendar": calendar,
         "upcoming_events": [e for e in event_alerts] if event_alerts else [],
+        "direction_changes": direction_changes,
         "rss": rss,
         "triggers": triggers,
         "trigger_count": len(triggers),
