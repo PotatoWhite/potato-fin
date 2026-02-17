@@ -1,68 +1,77 @@
 {
-  "_updated": "2026-02-16 15:51",
-  "_source": "2026-02-16_1541.md",
+  "_updated": "2026-02-17 21:37",
+  "_source": "2026-02-17_2127.md",
   "macro": {
-    "stance": "neutral",
+    "stance": "cautious_bullish",
     "conviction": 5,
     "key_thesis": "",
     "risk_events": [],
-    "last_change": "2026-02-16",
+    "last_change": "2026-02-17",
     "change_reason": "초기 빌드",
     "scenarios": {
-      "A": 40,
-      "B": 35,
-      "C": 20,
-      "D": 5
+      "A": 25,
+      "B": 40,
+      "C": 25,
+      "D": 10
     }
   },
   "tickers": {
     "NVDA": {
-      "judgment": "sell",
+      "judgment": "buy",
       "conviction": 5,
       "direction": "bullish",
       "scores": {
-        "tech": 0.7,
-        "fund": 3.3,
-        "supply": 2.1,
-        "sent": 1.5,
-        "total": 2.0
+        "tech": 0.0,
+        "fund": 4.0,
+        "supply": -0.5,
+        "sent": 1.2,
+        "total": 1.2
       },
-      "stop_loss": 175.0,
-      "target": 225.0,
-      "predictions": {},
+      "stop_loss": 169.0,
+      "target": 204.0,
+      "predictions": {
+        "5d": {
+          "price": 188.0,
+          "current": 182.81,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
+        }
+      },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "판단 변경"
     },
     "MSFT": {
       "judgment": "hold",
       "conviction": 5,
-      "direction": "bullish",
+      "direction": "neutral",
       "scores": {
-        "tech": 1.2,
-        "fund": 2.7,
-        "supply": 1.8,
-        "sent": 0.9,
-        "total": 1.8
+        "tech": -2.0,
+        "fund": 4.5,
+        "supply": 1.0,
+        "sent": -3.0,
+        "total": 0.6
       },
-      "stop_loss": 385.0,
-      "target": 440.0,
+      "stop_loss": 371.0,
+      "target": 432.0,
       "predictions": {
         "5d": {
-          "price": 415.0,
+          "price": 405.0,
           "current": 401.32,
-          "date": "2026-02-20",
-          "from_report": "2026-02-15_2349.md"
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
         }
       },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "판단 변경",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
+          3.41,
+          3.41,
           3.41
         ],
         "avg_signed_error_pct": 3.41,
@@ -75,37 +84,51 @@
       "conviction": 5,
       "direction": "bullish",
       "scores": {
-        "tech": 1.7,
-        "fund": 2.9,
-        "supply": 1.4,
-        "sent": 1.1,
-        "total": 2.0
+        "tech": 1.2,
+        "fund": 4.2,
+        "supply": 0.0,
+        "sent": -2.6,
+        "total": 1.4
       },
-      "stop_loss": 188.0,
-      "target": 235.0,
-      "predictions": {},
+      "stop_loss": 280.0,
+      "target": 340.0,
+      "predictions": {
+        "5d": {
+          "price": 310.0,
+          "current": 305.72,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
+        }
+      },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "판단 변경"
     },
     "TSLA": {
       "judgment": "hold",
       "conviction": 1,
-      "direction": "neutral",
+      "direction": "bearish",
       "scores": {
         "tech": -0.2,
-        "fund": 0.8,
+        "fund": -2.0,
         "supply": 0.5,
-        "sent": -0.3,
-        "total": 0.3
+        "sent": -1.7,
+        "total": -0.7
       },
-      "stop_loss": 310.0,
-      "target": 400.0,
-      "predictions": {},
+      "stop_loss": 384.0,
+      "target": 450.0,
+      "predictions": {
+        "5d": {
+          "price": 410.0,
+          "current": 417.44,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
+        }
+      },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드"
     },
     "PLTR": {
@@ -113,31 +136,33 @@
       "conviction": 3,
       "direction": "bullish",
       "scores": {
-        "tech": -1.5,
-        "fund": 1.0,
-        "supply": -0.5,
-        "sent": 2.0,
-        "total": 0.0
+        "tech": -2.0,
+        "fund": 3.5,
+        "supply": -1.0,
+        "sent": 1.4,
+        "total": 0.2
       },
-      "stop_loss": 105.0,
-      "target": 145.0,
+      "stop_loss": 112.0,
+      "target": 160.0,
       "predictions": {
         "5d": {
-          "price": 130.0,
+          "price": 135.0,
           "current": 131.41,
-          "date": "2026-02-20",
-          "from_report": "2026-02-15_2349.md"
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
         }
       },
       "key_catalyst": "",
       "special_labels": [
         "distribution"
       ],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
+          -1.07,
+          -1.07,
           -1.07
         ],
         "avg_signed_error_pct": -1.07,
@@ -148,20 +173,27 @@
     "CVX": {
       "judgment": "hold",
       "conviction": 9,
-      "direction": "bullish",
+      "direction": "neutral",
       "scores": {
-        "tech": 0.5,
-        "fund": 1.8,
-        "supply": 0.8,
-        "sent": 0.2,
-        "total": 1.0
+        "tech": 2.0,
+        "fund": -0.3,
+        "supply": 1.0,
+        "sent": 0.4,
+        "total": 0.9
       },
-      "stop_loss": 148.0,
-      "target": 175.0,
-      "predictions": {},
+      "stop_loss": 172.0,
+      "target": 195.0,
+      "predictions": {
+        "5d": {
+          "price": 183.0,
+          "current": 183.74,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
+        }
+      },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드"
     },
     "XOM": {
@@ -169,50 +201,59 @@
       "conviction": 5,
       "direction": "bullish",
       "scores": {
-        "tech": 0.3,
-        "fund": 1.6,
-        "supply": 0.6,
-        "sent": 0.1,
-        "total": 0.8
+        "tech": 2.5,
+        "fund": 1.5,
+        "supply": 1.0,
+        "sent": 1.1,
+        "total": 1.7
       },
-      "stop_loss": 100.0,
-      "target": 120.0,
-      "predictions": {},
+      "stop_loss": 141.0,
+      "target": 160.0,
+      "predictions": {
+        "5d": {
+          "price": 150.0,
+          "current": 148.45,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
+        }
+      },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드"
     },
     "UNH": {
-      "judgment": "sell",
+      "judgment": "hold",
       "conviction": 5,
       "direction": "bullish",
       "scores": {
-        "tech": -1.8,
-        "fund": 1.2,
-        "supply": 2.5,
-        "sent": -2.0,
-        "total": 0.1
+        "tech": -1.2,
+        "fund": 1.0,
+        "supply": 3.0,
+        "sent": 0.7,
+        "total": 0.7
       },
-      "stop_loss": 245.0,
-      "target": 310.0,
+      "stop_loss": 266.0,
+      "target": 330.0,
       "predictions": {
         "5d": {
-          "price": 265.0,
+          "price": 300.0,
           "current": 293.19,
-          "date": "2026-02-20",
-          "from_report": "2026-02-15_2349.md"
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
         }
       },
       "key_catalyst": "",
       "special_labels": [
         "shakeout"
       ],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "판단 변경",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
+          -9.61,
+          -9.61,
           -9.61
         ],
         "avg_signed_error_pct": -9.61,
@@ -225,29 +266,31 @@
       "conviction": 5,
       "direction": "bullish",
       "scores": {
-        "tech": 1.0,
-        "fund": 2.2,
-        "supply": 3.0,
-        "sent": 0.5,
-        "total": 1.8
+        "tech": -0.8,
+        "fund": 1.7,
+        "supply": 2.5,
+        "sent": 0.0,
+        "total": 0.9
       },
-      "stop_loss": 58.0,
-      "target": 75.0,
+      "stop_loss": 66.0,
+      "target": 76.0,
       "predictions": {
         "5d": {
-          "price": 67.0,
+          "price": 71.0,
           "current": 69.7,
-          "date": "2026-02-20",
-          "from_report": "2026-02-15_2349.md"
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
         }
       },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "판단 변경",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
+          -3.87,
+          -3.87,
           -3.87
         ],
         "avg_signed_error_pct": -3.87,
@@ -260,18 +303,25 @@
       "conviction": 5,
       "direction": "neutral",
       "scores": {
-        "tech": 0.8,
-        "fund": 1.5,
-        "supply": 0.3,
-        "sent": 0.4,
-        "total": 0.9
+        "tech": -1.8,
+        "fund": 4.3,
+        "supply": 0.0,
+        "sent": -0.9,
+        "total": 0.6
       },
-      "stop_loss": 155.0,
-      "target": 195.0,
-      "predictions": {},
+      "stop_loss": 130.0,
+      "target": 156.0,
+      "predictions": {
+        "5d": {
+          "price": 142.0,
+          "current": 140.7,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
+        }
+      },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "판단 변경"
     },
     "BOTZ": {
@@ -279,11 +329,11 @@
       "conviction": 5,
       "direction": "bullish",
       "scores": {
-        "tech": 0.5,
-        "fund": 1.0,
-        "supply": 0.5,
-        "sent": 0.8,
-        "total": 0.7
+        "tech": 2.8,
+        "fund": 0.0,
+        "supply": 0.0,
+        "sent": -1.1,
+        "total": 0.9
       },
       "stop_loss": 34.0,
       "target": 42.0,
@@ -291,17 +341,19 @@
         "5d": {
           "price": 39.0,
           "current": 38.34,
-          "date": "2026-02-20",
-          "from_report": "2026-02-15_2349.md"
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
         }
       },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
+          1.72,
+          1.72,
           1.72
         ],
         "avg_signed_error_pct": 1.72,
@@ -310,17 +362,30 @@
       }
     },
     "SLV": {
-      "judgment": "",
-      "conviction": 7,
-      "direction": "neutral",
-      "scores": {},
-      "stop_loss": 51.31,
-      "target": 75.0,
-      "predictions": {},
+      "judgment": "hold",
+      "conviction": 5,
+      "direction": "bullish",
+      "scores": {
+        "tech": 0.0,
+        "fund": 0.0,
+        "supply": 0.0,
+        "sent": -0.8,
+        "total": -0.1
+      },
+      "stop_loss": 58.0,
+      "target": 85.0,
+      "predictions": {
+        "5d": {
+          "price": 72.0,
+          "current": 69.72,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
+        }
+      },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
-      "change_reason": "초기 빌드"
+      "last_change": "2026-02-17",
+      "change_reason": "판단 변경"
     },
     "035420.KS": {
       "judgment": "hold",
@@ -333,34 +398,36 @@
         "sent": 0.5,
         "total": 0.2
       },
-      "stop_loss": 230357.0,
-      "target": 285714.0,
+      "stop_loss": 235000.0,
+      "target": 310000.0,
       "predictions": {
         "5d": {
-          "price": 265000.0,
+          "price": 256000.0,
           "current": 252500.0,
-          "date": "2026-02-20",
-          "from_report": "2026-02-15_2349.md"
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
         }
       },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-16",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
+          4.95,
+          4.95,
           4.95
         ],
         "avg_signed_error_pct": 4.95,
-        "direction_hit_rate": 0.0,
-        "direction_hits": 0
+        "direction_hit_rate": 33.3,
+        "direction_hits": 0.3
       }
     },
     "195940.KQ": {
       "judgment": "hold",
       "conviction": 7,
-      "direction": "bullish",
+      "direction": "neutral",
       "scores": {
         "tech": 2.5,
         "fund": 2.0,
@@ -368,23 +435,25 @@
         "sent": 0.5,
         "total": 1.4
       },
-      "stop_loss": 48788.0,
-      "target": 61389.0,
+      "stop_loss": 48000.0,
+      "target": 70000.0,
       "predictions": {
         "5d": {
-          "price": 56000.0,
+          "price": 55000.0,
           "current": 53900.0,
-          "date": "2026-02-20",
-          "from_report": "2026-02-15_2349.md"
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
         }
       },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-16",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
+          3.9,
+          3.9,
           3.9
         ],
         "avg_signed_error_pct": 3.9,
@@ -409,11 +478,13 @@
       },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-16",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
+          7.17,
+          7.17,
           7.17
         ],
         "avg_signed_error_pct": 7.17,
@@ -424,7 +495,7 @@
     "1377.T": {
       "judgment": "hold",
       "conviction": 5,
-      "direction": "bullish",
+      "direction": "neutral",
       "scores": {
         "tech": 0.3,
         "fund": 1.5,
@@ -432,26 +503,28 @@
         "sent": 0.3,
         "total": 0.7
       },
-      "stop_loss": 3200.0,
-      "target": 4500.0,
+      "stop_loss": 3800.0,
+      "target": 4800.0,
       "predictions": {
         "5d": {
-          "price": 3750.0,
-          "current": 4255.0,
-          "date": "2026-02-20",
-          "from_report": "2026-02-15_2349.md"
+          "price": 4300.0,
+          "current": 4180.0,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
         }
       },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드",
       "bias_tracker": {
-        "n_predictions": 0.3,
+        "n_predictions": 0.8999999999999999,
         "signed_errors": [
-          -11.45
+          -11.45,
+          -10.29,
+          -10.29
         ],
-        "avg_signed_error_pct": -11.45,
+        "avg_signed_error_pct": -10.68,
         "direction_hit_rate": 0.0,
         "direction_hits": 0
       }
@@ -461,18 +534,25 @@
       "conviction": 7,
       "direction": "bullish",
       "scores": {
-        "tech": -0.5,
-        "fund": -0.3,
-        "supply": 0.2,
-        "sent": -0.8,
-        "total": -0.4
+        "tech": 1.5,
+        "fund": -0.5,
+        "supply": 0.0,
+        "sent": 0.5,
+        "total": 0.4
       },
-      "stop_loss": 20.0,
-      "target": 30.0,
-      "predictions": {},
+      "stop_loss": 39.0,
+      "target": 55.0,
+      "predictions": {
+        "5d": {
+          "price": 48.0,
+          "current": 46.98,
+          "date": "2026-02-24",
+          "from_report": "2026-02-17_2127.md"
+        }
+      },
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-15",
+      "last_change": "2026-02-17",
       "change_reason": "초기 빌드"
     },
     "005930.KS": {
@@ -491,7 +571,7 @@
       "predictions": {},
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-16",
+      "last_change": "2026-02-17",
       "change_reason": ""
     },
     "000660.KS": {
@@ -510,7 +590,7 @@
       "predictions": {},
       "key_catalyst": "",
       "special_labels": [],
-      "last_change": "2026-02-16",
+      "last_change": "2026-02-17",
       "change_reason": ""
     }
   },
@@ -524,38 +604,6 @@
     "best_tickers": []
   },
   "revision_log": [
-    {
-      "date": "2026-02-15",
-      "ticker": "195940.KQ",
-      "field": "conviction",
-      "old": 5,
-      "new": 6,
-      "reason": "예측비교: 적중 (53000→53900, 오차 1.7%)"
-    },
-    {
-      "date": "2026-02-15",
-      "ticker": "BAYN.DE",
-      "field": "conviction",
-      "old": 5,
-      "new": 6,
-      "reason": "예측비교: 적중 (47→46, 오차 2.1%)"
-    },
-    {
-      "date": "2026-02-15",
-      "ticker": "NVDA",
-      "field": "conviction",
-      "old": 8,
-      "new": 9,
-      "reason": "예측비교: 적중 (185→183, 오차 1.2%)"
-    },
-    {
-      "date": "2026-02-15",
-      "ticker": "GOOGL",
-      "field": "conviction",
-      "old": 8,
-      "new": 9,
-      "reason": "예측비교: 적중 (300→306, 오차 1.9%)"
-    },
     {
       "date": "2026-02-15",
       "ticker": "TSLA",
@@ -681,6 +729,38 @@
       "ticker": "QCOM",
       "field": "judgment",
       "old": "buy",
+      "new": "hold",
+      "reason": "보고서 판단 변경"
+    },
+    {
+      "date": "2026-02-17",
+      "ticker": "MACRO",
+      "field": "stance",
+      "old": "neutral",
+      "new": "cautious_bullish",
+      "reason": "보고서 매크로 업데이트"
+    },
+    {
+      "date": "2026-02-17",
+      "ticker": "NVDA",
+      "field": "judgment",
+      "old": "sell",
+      "new": "buy",
+      "reason": "보고서 판단 변경"
+    },
+    {
+      "date": "2026-02-17",
+      "ticker": "UNH",
+      "field": "judgment",
+      "old": "sell",
+      "new": "hold",
+      "reason": "보고서 판단 변경"
+    },
+    {
+      "date": "2026-02-17",
+      "ticker": "SLV",
+      "field": "judgment",
+      "old": "",
       "new": "hold",
       "reason": "보고서 판단 변경"
     }
