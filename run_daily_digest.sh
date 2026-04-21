@@ -137,7 +137,35 @@ except Exception as e:
     print(f"- (조회 실패: {e})")
 print()
 
-# 5) 오늘 예정 이벤트 (earnings)
+# 5') Tier 보고서 전수 스캔 — 모순 중재용
+print("## 지난 24h Tier 보고서 본문 (중재 대상)")
+tier_patterns = [
+    ("보고서/20*.md",              "US 정식"),
+    ("보고서/한국/20*.md",         "KR 정식"),
+    ("보고서/브리핑/*_mid.md",     "Midcheck"),
+    ("보고서/브리핑/*_pre.md",     "Premarket"),
+    ("보고서/브리핑/*_brief.md",   "긴급 브리핑"),
+    ("보고서/earnings/*.md",       "Earnings 프리뷰"),
+    ("보고서/deep_dive_3/*.md",    "Deep Dive"),
+]
+tier_count = 0
+for glob_pat, label in tier_patterns:
+    base = STOCK_DIR if "보고서" in glob_pat else STOCK_DIR
+    files = sorted(base.glob(glob_pat), key=lambda p: p.stat().st_mtime, reverse=True)
+    recent = [f for f in files if f.stat().st_mtime > cutoff_epoch]
+    for f in recent[:2]:  # 타입당 최대 2개
+        tier_count += 1
+        mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime('%m-%d %H:%M')
+        text = f.read_text(errors="ignore")
+        print(f"\n### [{label}] {mtime} — {f.name}")
+        print("```")
+        print(text[:2500])  # 첫 2.5KB
+        print("```")
+if tier_count == 0:
+    print("(지난 24h Tier 보고서 없음)")
+print()
+
+# 6) 오늘 예정 이벤트 (earnings)
 print("### 📈 다가오는 실적 (D-7 이내)")
 try:
     scan_out = subprocess.run(
@@ -159,44 +187,93 @@ PYEOF
 )
 
 # Claude Sonnet 호출 — 컨텍스트 + 3-5 Today Action 생성
-PROMPT="너는 potato-fin Daily Digest 생성자. 아침 1통 알림의 **유일한 정보원**이니 간결·액션 중심.
+PROMPT="너는 potato-fin Daily Digest 생성자 + **모순 중재자**. 아침 1통 알림의 **유일한 정보원**이라 간결·액션·일관성 동시에.
 
-## 입력: 지난 24시간 시스템 데이터
+## 입력: 지난 24시간 시스템 데이터 + Tier 보고서 본문
 $CONTEXT
 
-## Task: Daily Digest 작성
-### 필수 구조 (60~80줄 이내)
+## Task
 
-1. **🎯 오늘의 Top 3 Action** (가장 중요)
-   - 위 데이터 + 최신 시장 상황 기반
-   - 각 액션: 종목 / 가격 조건 / 사이즈 / 근거 1줄
-   - 없으면 \"오늘 체결 액션 없음 — 관망 이유: X\"
+### 1. 🔥 종목별 verdict 중재 (최우선, 필수 섹션)
+위 Tier 보고서 본문에서 19종목 각각의 verdict 를 추출한다.
+**보고서마다 같은 종목에 대한 판단이 다르면 최종 1개로 중재**.
 
-2. **⚡ 간밤 이벤트 (Critical 3개)**
-   - 이벤트 플래시 중 가장 중요한 3개만
-   - 각 1줄 요약 + 포지션 영향
+| 종목 | 장전 | 장중 | 정식 | Digest 최종 | 근거 |
+|------|------|------|------|------------|------|
+| UNH  | BUY  | TRIM | TRIM | **TRIM 10주** | Beat 후 +8.7% 추격금지 (가장 최근 데이터) |
+| ... |
 
-3. **📊 보고서 링크** (Notion 만 업로드된 것)
-   - Premarket/Midcheck/US/KR 중 생성된 것 링크
-   - 사용자가 **반드시 봐야 할 1개** 강조
+**중재 원칙** (우선순위):
+1. 가장 최근 timestamp (실적 발표 후 > 발표 전)
+2. 구체 수치 근거 (컨센 vs 실측)
+3. 네이버 실측 수급 (한국)
+4. 태경 페르소나 Risk\$/Stop/Size 포맷
 
-4. **📈 이번 주 임박 실적** (D-7 이내만)
+**모순 발견 시 반드시 명시**: \"⚠ 장전 매수였으나 정식 매도 — 근거: 실적 실제 Miss. 최종: TRIM\"
 
-5. **⚠️ 이상 감지** (heartbeat 에러, 보고서 실패 등)
+### 2. 🎯 오늘의 Top 3 Action
+중재된 verdict 중 **가장 시급한 3개**만.
+- 각 액션: 종목 / 가격 조건 (수치) / 사이즈 / 근거 1줄
+- 없으면 \"오늘 체결 액션 없음 — 관망 이유: X\"
 
-6. **🛌 한 줄 요약** (태경 페르소나 톤)
+### 3. ⚡ 간밤 이벤트 (Critical 3개)
+이벤트 플래시 중 가장 중요한 3개 + 포지션 영향.
+
+### 4. 📊 보고서 링크
+Silent 업로드된 Tier 보고서 중 **반드시 봐야 할 1개** 강조.
+
+### 5. 📈 이번 주 임박 실적 (D-7 이내)
+
+### 6. ⚠️ 이상 감지 (heartbeat 에러, 보고서 실패)
+
+### 7. 🛌 한 줄 요약 (태경 페르소나 톤)
 
 ## 출력 파일
 $REPORT_FILE
 
 ## 제약
+- **중재 섹션이 디지스트의 핵심** — 이게 없으면 시스템 신뢰도 0
 - 위 입력에 없는 건 만들어내지 말 것
 - 숫자 없으면 \"측정 불가\"
+- 모순 발견 시 반드시 명시 (숨기지 말 것)
 - 한국어
-- 80줄 이내"
+- 100~130줄"
 
 EXIT_CODE=0
 "$CLAUDE" --model sonnet --dangerously-skip-permissions --print "$PROMPT" >> "$LOG_FILE" 2>&1 || EXIT_CODE=$?
+
+# Verdict 충돌 로그 추출 — Digest 본문에서 ⚠ 줄만 뽑아 별도 파일에 누적
+# self_improve.sh 가 이걸 읽어 주간 패턴 분석
+CONFLICTS_LOG="$STOCK_DIR/team/verdict_conflicts.jsonl"
+mkdir -p "$(dirname "$CONFLICTS_LOG")"
+if [ -f "$STOCK_DIR/$REPORT_FILE" ]; then
+    "$PYTHON" - <<PYEOF
+import json, re
+from datetime import datetime
+from pathlib import Path
+
+report = Path("$STOCK_DIR/$REPORT_FILE").read_text(errors="ignore")
+conflicts = []
+# "⚠" 또는 "모순" 들어간 줄 추출
+for line in report.splitlines():
+    line = line.strip()
+    if not line:
+        continue
+    if line.startswith("⚠") or "모순" in line or ("vs" in line and ("→" in line or "최종" in line)):
+        conflicts.append(line)
+
+# 누적 기록
+log_file = Path("$CONFLICTS_LOG")
+with log_file.open("a") as f:
+    for c in conflicts:
+        f.write(json.dumps({
+            "timestamp": datetime.now().isoformat(),
+            "digest_date": "$DIGEST_DATE",
+            "line": c,
+        }, ensure_ascii=False) + "\n")
+print(f"[digest] verdict 충돌 {len(conflicts)}건 기록 → {log_file}")
+PYEOF
+fi
 
 # Notion + Telegram (Digest 은 SILENT 목록에 없어서 알림 나감)
 if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
