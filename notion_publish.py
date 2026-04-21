@@ -14,7 +14,7 @@ Fallback:
 사용:
   python3 notion_publish.py <md_file> <type> [--title=<title>] [--summary=<1-liner>]
 
-Type: US | KR | DeepDive | Premarket | Midcheck | Findings | Round1 | Round2
+Type: US | KR | DeepDive | Premarket | Midcheck | Findings | Round1 | Round2 | Scout
 """
 from __future__ import annotations
 
@@ -296,6 +296,8 @@ def _icon_for(report_type: str) -> str:
         "Findings": "🔍",
         "Round1": "🔍",
         "Round2": "📊",
+        "Scout": "💎",
+        "Earnings": "📈",
     }.get(report_type, "📄")
 
 
@@ -306,7 +308,7 @@ def _icon_for(report_type: str) -> str:
 def main() -> int:
     p = argparse.ArgumentParser(description="Upload MD report to Notion DB.")
     p.add_argument("md_file", type=Path, help="Markdown 보고서 파일 경로")
-    p.add_argument("report_type", choices=["US", "KR", "DeepDive", "Premarket", "Midcheck", "Findings", "Round1", "Round2"])
+    p.add_argument("report_type", choices=["US", "KR", "DeepDive", "Premarket", "Midcheck", "Findings", "Round1", "Round2", "Scout", "Earnings"])
     p.add_argument("--summary", help="한 줄 요약 (생략 시 빈 값)")
     args = p.parse_args()
 
@@ -316,7 +318,14 @@ def main() -> int:
 
     env = load_env()
     token = env.get("NOTION_TOKEN")
-    db_id = env.get("NOTION_DATABASE_ID")
+
+    # Type별 DB 라우팅 — 향후 확장 가능
+    type_to_db_key = {
+        "Scout": "NOTION_SCOUT_DATABASE_ID",
+        "Earnings": "NOTION_EARNINGS_DATABASE_ID",
+    }
+    db_key = type_to_db_key.get(args.report_type, "NOTION_DATABASE_ID")
+    db_id = env.get(db_key) or env.get("NOTION_DATABASE_ID")
 
     if not token or not db_id:
         print("[notion_publish] NOTION_TOKEN / NOTION_DATABASE_ID 미설정 — 업로드 스킵 (non-fatal).", file=sys.stderr)

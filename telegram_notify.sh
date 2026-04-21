@@ -26,12 +26,14 @@ CHAT_ID="${TELEGRAM_CHAT_ID}"
 
 # Label → Notion type 매핑
 case "$LABEL" in
-    "US 보고서"|"US report")  NOTION_TYPE="US" ;;
-    "한국 보고서"|"KR report") NOTION_TYPE="KR" ;;
-    "Deep Dive 3")             NOTION_TYPE="DeepDive" ;;
-    "장전 브리핑"|"Premarket") NOTION_TYPE="Premarket" ;;
-    "장중 체크"|"Midcheck")    NOTION_TYPE="Midcheck" ;;
-    *)                         NOTION_TYPE="Findings" ;;
+    "US 보고서"|"US report")      NOTION_TYPE="US" ;;
+    "한국 보고서"|"KR report")     NOTION_TYPE="KR" ;;
+    "Deep Dive 3")                 NOTION_TYPE="DeepDive" ;;
+    "장전 브리핑"|"Premarket")     NOTION_TYPE="Premarket" ;;
+    "장중 체크"|"Midcheck")        NOTION_TYPE="Midcheck" ;;
+    "주간 스카우트"|"Scout")       NOTION_TYPE="Scout" ;;
+    "실적 프리뷰"|"Earnings")      NOTION_TYPE="Earnings" ;;
+    *)                             NOTION_TYPE="Findings" ;;
 esac
 
 # 한 줄 요약 추출 (보고서 3번째 줄 헤더에서)

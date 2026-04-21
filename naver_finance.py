@@ -545,6 +545,77 @@ def get_kr_fundamentals(ticker: str) -> Optional[dict[str, Any]]:
     }
 
 
+def get_consensus(ticker: str) -> Optional[dict[str, Any]]:
+    """
+    애널리스트 컨센서스 (한국 + 미국 + 일본 모두 네이버 API에서 지원).
+
+    Returns:
+        {
+            "ticker": ...,
+            "recomm_mean": 4.26,         # 1 (strong sell) ~ 5 (strong buy)
+            "target_mean": 264.95,       # 애널 평균 목표가
+            "target_high": 432.78,
+            "target_low": 138.00,
+            "currency": "USD",
+            "updated": "2026-04-16",
+        }
+    """
+    naver_tk = to_naver(ticker)
+    if not naver_tk:
+        return None
+
+    # 한국은 code 그대로, 해외는 .O/.T 등 접미사
+    if is_korean(ticker):
+        url = f"https://m.stock.naver.com/api/stock/{naver_tk}/integration"
+    else:
+        url = f"https://api.stock.naver.com/stock/{naver_tk}/integration"
+
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        logger.warning(f"naver consensus failed for {ticker}: {e}")
+        return None
+
+    cons = data.get("consensusInfo") or {}
+    if not cons:
+        return None
+
+    return {
+        "ticker": naver_tk,
+        "recomm_mean": _parse_pct_str(cons.get("recommMean")),
+        "target_mean": _parse_pct_str(cons.get("priceTargetMean")),
+        "target_high": _parse_pct_str(cons.get("priceTargetHigh")),
+        "target_low": _parse_pct_str(cons.get("priceTargetLow")),
+        "currency": (cons.get("currencyType") or {}).get("code", ""),
+        "updated": cons.get("createDate", ""),
+    }
+
+
+def get_kr_ir_schedule(ticker: str) -> Optional[list[dict[str, Any]]]:
+    """
+    한국 종목 IR 스케줄 (실적발표/주주총회 등). 네이버 integration의 irScheduleInfo.
+    해외 종목은 미지원.
+    """
+    code = _to_korean_code(ticker)
+    if not code:
+        return None
+
+    try:
+        r = requests.get(f"https://m.stock.naver.com/api/stock/{code}/integration",
+                        headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+    except Exception as e:
+        logger.warning(f"naver IR failed for {code}: {e}")
+        return None
+
+    ir = data.get("irScheduleInfo") or {}
+    events = ir.get("irScheduleList") or []
+    return events if events else None
+
+
 def _to_korean_code(ticker: str) -> Optional[str]:
     """한국 티커 → 6자리 KRX 코드."""
     if ticker.endswith(KOREAN_EXCHANGES):
