@@ -456,7 +456,7 @@ claude
 
 # ─── 감시/자가개선 ───
 0 * * * *       check_heartbeat.sh        # 매시간 Tier 3 stale 감지
-0 8 * * *       run_daily_digest.sh       # 매일 08:00 간밤 24h Digest (텔레그램 1통)
+0 7 * * *       run_daily_digest.sh       # 매일 07:00 간밤 24h Digest (기상 전 읽을 시간)
 0 22 * * 0      run_self_improve.sh       # 일 22:00 자기개선 (evaluation 기반, branch only)
 ```
 
