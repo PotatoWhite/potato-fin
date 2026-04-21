@@ -338,13 +338,15 @@ Tier 1 Core (5명) — 일상 진단 / 의사결정
 Tier 2 Strategy (3명) — 주간 심층 / 매크로/지정학
   재현 (potato-us-politics) · 상훈 (potato-asia-politics) · 도윤 (potato-macro)
 
-Tier 3 Specialists (3명) — 이벤트 트리거 소집
+Tier 3 Specialists (5명) — 이벤트 트리거 소집
   태주 (potato-trump-mind — 냉정한 트럼프 본인 분석)
   하윤 (potato-trump-clan — 트럼프 가문/측근 네트워크)
-  성우 (potato-tech — IT + AI/양자/로보틱스 통합 1명, 실험)
+  성우 (potato-tech — IT + AI + 반도체/HBM/클라우드/foundation models)
+  지원 (potato-frontier — 양자 + 로보틱스 + 차세대 컴퓨팅/핵융합/BCI)
+  시우 (potato-scout — 숨은진주 발굴, 체크리스트 기반, 기존 Agent 6 페르소나화)
 ```
 
-정의 파일: `.claude/agents/potato-*.md` (11개)
+정의 파일: `.claude/agents/potato-*.md` (13개)
 매뉴얼: `team/AGENT_TEAMS_MANUAL.md`
 메모리: `~/.claude/projects/.../memory/feedback_agent_team_model.md`
 
@@ -356,9 +358,13 @@ Tier 3 Specialists (3명) — 이벤트 트리거 소집
 | 주간 심층 | Tier 1 + Tier 2 (8명) | 매크로/정치 해석 |
 | 트럼프 관련 이벤트 | T1 + 재현/태주/하윤 | 파벌 + 개인 + 가문 3각 검증 |
 | 연준/금리 이벤트 | T1 + 도윤/재현 | 정책 + 경제 |
-| AI/반도체/테크 | T1 + 성우 | 기술 변곡점 |
+| AI/반도체/클라우드 | T1 + 성우 | 현 시장 tech 변곡점 |
+| 양자/로보틱스/차세대 | T1 + 지원 | frontier tech + BOTZ/Optimus |
+| NVDA GTC / Google I/O | T1 + 성우 + 지원 | 현 + 미래 기술 통합 |
 | 한국 주식 이슈 | T1 + 상훈 + 현우 | 아시아 정치 + 실측 |
-| 11/3 중간선거 | Tier 1+2+3 전원 | 모든 domain 영향 |
+| 숨은진주 발굴 (주간) | T1 + 시우 + 지원 | 스카우트 + frontier 매핑 |
+| 13F 공시일 | T1 + 시우 + 태경 | 기관 포지션 + 체크리스트 |
+| 11/3 중간선거 | Tier 1+2+3 전원 (13명) | 모든 domain 영향 |
 
 ## 활성화 (Agent Teams)
 
