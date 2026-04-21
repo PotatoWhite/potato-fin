@@ -235,18 +235,55 @@ def publish(
     first_batch = blocks[:100]
     rest = blocks[100:]
 
-    properties: dict[str, Any] = {
-        "제목": {"title": [{"text": {"content": meta["title"][:2000]}}]},
-        "종류": {"select": {"name": report_type}},
-        "원본 파일": {"rich_text": [{"text": {"content": str(md_file.relative_to(STOCK_DIR)) if md_file.is_relative_to(STOCK_DIR) else str(md_file)}}]},
-        "상태": {"select": {"name": "생성"}},
-    }
-    if meta["date"]:
-        properties["날짜"] = {"date": {"start": meta["date"]}}
-    if meta["nav"]:
-        properties["NAV"] = {"number": meta["nav"]}
-    if summary:
-        properties["한 줄 요약"] = {"rich_text": [{"text": {"content": summary[:2000]}}]}
+    # DB 타입별 properties (스키마 다름)
+    origin_path = str(md_file.relative_to(STOCK_DIR)) if md_file.is_relative_to(STOCK_DIR) else str(md_file)
+
+    if report_type == "Scout":
+        # 💎 스카우트 Watchlist DB 스키마
+        properties = {
+            "제목": {"title": [{"text": {"content": meta["title"][:2000]}}]},
+            "유형": {"select": {"name": "주간리포트"}},
+            "원본 파일": {"rich_text": [{"text": {"content": origin_path}}]},
+            "상태": {"select": {"name": "신규"}},
+        }
+        if meta["date"]:
+            properties["발굴일"] = {"date": {"start": meta["date"]}}
+        if summary:
+            properties["한 줄 요약"] = {"rich_text": [{"text": {"content": summary[:2000]}}]}
+    elif report_type == "Earnings":
+        # 📈 Earnings Preview DB 스키마
+        # 실적일은 meta["date"]가 아니라 파일명에서 추출 필요 (실적일 != 작성일)
+        # 임시로 meta["date"]를 실적일로 사용 (run_earnings_preview.sh가 파일명에 날짜 포함)
+        properties = {
+            "제목": {"title": [{"text": {"content": meta["title"][:2000]}}]},
+            "원본 파일": {"rich_text": [{"text": {"content": origin_path}}]},
+            "상태": {"select": {"name": "프리뷰"}},
+        }
+        # 파일명에서 실적일 추출 (예: NVDA_preview_2026-05-21.md)
+        import re as _re
+        m = _re.search(r"_(\d{4}-\d{2}-\d{2})\.md$", md_file.name)
+        if m:
+            properties["실적일"] = {"date": {"start": m.group(1)}}
+        # 파일명에서 티커 추출
+        m = _re.match(r"^([A-Za-z0-9._]+)_preview_", md_file.name)
+        if m:
+            properties["티커"] = {"rich_text": [{"text": {"content": m.group(1)}}]}
+        if summary:
+            properties["한 줄 요약"] = {"rich_text": [{"text": {"content": summary[:2000]}}]}
+    else:
+        # 보고서 DB (기본) 스키마
+        properties = {
+            "제목": {"title": [{"text": {"content": meta["title"][:2000]}}]},
+            "종류": {"select": {"name": report_type}},
+            "원본 파일": {"rich_text": [{"text": {"content": origin_path}}]},
+            "상태": {"select": {"name": "생성"}},
+        }
+        if meta["date"]:
+            properties["날짜"] = {"date": {"start": meta["date"]}}
+        if meta["nav"]:
+            properties["NAV"] = {"number": meta["nav"]}
+        if summary:
+            properties["한 줄 요약"] = {"rich_text": [{"text": {"content": summary[:2000]}}]}
 
     headers = {
         "Authorization": f"Bearer {token}",

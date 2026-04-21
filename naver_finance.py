@@ -44,6 +44,7 @@ Fallback 원칙:
 from __future__ import annotations
 
 import logging
+import math
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
@@ -183,28 +184,38 @@ def get_price(ticker: str) -> Optional[float]:
     """
     naver_tk = to_naver(ticker)
 
+    def _safe_float(v) -> Optional[float]:
+        """NaN / None / 'NaN' 문자열 방어."""
+        if v is None:
+            return None
+        try:
+            f = float(v)
+            if math.isnan(f) or math.isinf(f) or f <= 0:
+                return None
+            return f
+        except (ValueError, TypeError):
+            return None
+
     if naver_tk:
         if is_korean(ticker):
-            # 최근 5일 일봉의 마지막 종가
             end = datetime.now().strftime("%Y%m%d")
             start = (datetime.now() - timedelta(days=10)).strftime("%Y%m%d")
             rows = _get_korean_ohlcv(naver_tk, start, end)
             if rows:
-                return float(rows[-1]["closePrice"])
+                p = _safe_float(rows[-1].get("closePrice"))
+                if p is not None:
+                    return p
         else:
-            # 해외: polling 실시간 우선, 없으면 basic
             rt = _get_foreign_realtime(naver_tk)
-            if rt and rt.get("closePrice"):
-                try:
-                    return float(rt["closePrice"])
-                except (ValueError, TypeError):
-                    pass
+            if rt:
+                p = _safe_float(rt.get("closePrice"))
+                if p is not None:
+                    return p
             basic = _get_foreign_basic(naver_tk)
-            if basic and basic.get("closePrice"):
-                try:
-                    return float(basic["closePrice"])
-                except (ValueError, TypeError):
-                    pass
+            if basic:
+                p = _safe_float(basic.get("closePrice"))
+                if p is not None:
+                    return p
 
     # Fallback → yfinance
     if yf is None:
@@ -213,7 +224,9 @@ def get_price(ticker: str) -> Optional[float]:
     try:
         data = yf.Ticker(ticker).history(period="5d", auto_adjust=False)
         if not data.empty:
-            return float(data["Close"].iloc[-1])
+            p = _safe_float(data["Close"].iloc[-1])
+            if p is not None:
+                return p
     except Exception as e:
         logger.warning(f"yfinance fallback failed for {ticker}: {e}")
     return None
