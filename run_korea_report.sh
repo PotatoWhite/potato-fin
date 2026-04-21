@@ -9,7 +9,7 @@ unset CLAUDECODE 2>/dev/null || true
 
 STOCK_DIR="${STOCK_DIR:-/home/bravopotato/Spaces/finspace/potato-fin}"
 PYTHON="${PYTHON:-$STOCK_DIR/.venv/bin/python3}"
-CLAUDE="${CLAUDE:-/home/linuxbrew/.linuxbrew/bin/claude}"
+CLAUDE="${CLAUDE:-$(command -v claude 2>/dev/null || echo /home/bravopotato/.npm-global/bin/claude)}"
 LOG_DIR="${LOG_DIR:-$HOME/logs/stock-monitor}"
 
 mkdir -p "$LOG_DIR"
@@ -90,7 +90,7 @@ WebSearch를 충분히 활용하여 다음을 반드시 조사하라 (최소 20�
 9. 중국 영향: 중국 경기지표, 한중 무역, 중국 프록시 종목 영향
 
 [버티컬 심층 리서치 — 보유 한국종목 + 주요 편입후보, 각 2건 = 6건+]
-CLAUDE.md의 '종목별 버티컬 분석 맵'을 참조하여 추가 WebSearch를 수행하라:
+docs/vertical_map.md의 '종목별 버티컬 분석 맵'을 참조하여 추가 WebSearch를 수행하라:
 - 삼성전자: \"삼성전자 파운드리 수율 HBM 점유율 2026\" + \"삼성전자 반도체 실적 전망 2026\"
 - SK하이닉스: \"SK하이닉스 HBM3E 출하량 엔비디아 2026\" + \"SK하이닉스 DRAM 가격 전망 2026\"
 - NAVER: \"네이버 AI 브리핑 침투율 광고 매출 2026\" + \"네이버 커머스 GMV 쿠팡 점유율 2026\"
@@ -99,10 +99,10 @@ CLAUDE.md의 '종목별 버티컬 분석 맵'을 참조하여 추가 WebSearch�
 
 종목별 분석 테이블에 반드시 아래 행을 추가하라:
 | 버티컬 분석 | [사업부별 수요] 핵심 사업 동향 / [경쟁] 점유율 변화 / [선행지표] 최신 데이터 |
-이 행은 CLAUDE.md 버티컬 맵의 카테고리를 기준으로 최신 데이터를 채워 작성한다.
+이 행은 docs/vertical_map.md 버티컬 맵의 카테고리를 기준으로 최신 데이터를 채워 작성한다.
 
 보고서에 정확한 수치로 반영하고, 한국 종목의 외국인/기관 수급 데이터를 반드시 검증하세요.
-CLAUDE.md의 '한국시장 일일 보고서' 템플릿을 따라 작성하세요.
+docs/report_template_kr.md의 '한국시장 일일 보고서' 템플릿을 따라 작성하세요.
 
 === 보고서 품질 교훈 (반드시 준수) ===
 ① 한국 시장 수급은 외국인 > 기관 > 개인 순으로 신뢰. 외국인 연속 순매수/매도 일수 표기.
@@ -128,6 +128,12 @@ CLAUDE.md의 '한국시장 일일 보고서' 템플릿을 따라 작성하세요
 ② 분배 판별: 내부자 매도만 + 공매도 높음 + 긍정 뉴스 범람 → 추격 매수 금지
 ③ 성장함정 판별: 매출 성장하지만 FCF 적자 + 부채 과다 → 매출에 속지 말 것
 ④ 재무 건전성: FCF, 부채비율, 유동비율, 영업이익률 → 체력 진단
+
+=== 오늘의 1억 포트폴리오 (한국시장, 매 보고서 필수) ===
+'오늘 1억이 있다면' 섹션을 반드시 작성하라.
+한국시장 종목 위주로 1억(₩100,000,000)을 지금 당장 투자한다면 어떻게 배분할지 제시.
+보유 한국종목 + 신규 한국종목(숨은진주) + 현금(10~30%) 혼합.
+각 종목 매수가는 당일 기술적 분석 기반 구체적 가격, 3분할 원칙 적용.
 
 === 현금 관리 지침 ===
 아래 현금 잔고를 참조하여 한국 종목 매수 제안 시 구체적 금액/수량/조건을 명시하라.
@@ -186,6 +192,12 @@ echo "$(date): 포트폴리오 스냅샷" >> "$LOG_FILE"
 if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
     echo "$(date): 텔레그램 전송" >> "$LOG_FILE"
     bash "$STOCK_DIR/telegram_notify.sh" "$STOCK_DIR/$REPORT_FILE" "한국 보고서" >> "$LOG_FILE" 2>&1 || true
+fi
+
+# Tier 3 heartbeat (check_heartbeat.sh 가 이 파일 mtime 으로 사일런트 다운 감지)
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    date -Iseconds > "$LOG_DIR/.heartbeat_kr"
+    echo "$(date): heartbeat 기록: $LOG_DIR/.heartbeat_kr" >> "$LOG_FILE"
 fi
 
 # 30일 이상 된 로그 삭제

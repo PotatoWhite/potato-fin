@@ -34,20 +34,50 @@ def get_portfolio_tickers():
 
 
 def fetch_history(tickers, period="6mo"):
-    """종목별 일봉 데이터 다운로드"""
+    """종목별 일봉 데이터 다운로드 — 네이버 우선, yfinance fallback.
+
+    Phase C 2026-04-21: naver_finance.get_ohlcv() 사용.
+    - 한국 종목: 네이버 chart API (외국인 보유율 컬럼 ForeignPct 포함)
+    - 해외 종목: 네이버 basic (현재가) + yfinance fallback (full OHLCV)
+    - BAYN.DE 등 미지원: yfinance
+    """
+    import naver_finance
+
+    # period → days 변환 (1mo=30, 3mo=90, 6mo=180, 1y=365)
+    days_map = {"1mo": 30, "3mo": 90, "6mo": 180, "1y": 365, "2y": 730}
+    days = days_map.get(period, 180)
+
     data = {}
-    raw = yf.download(tickers, period=period, progress=False, group_by="ticker")
+    # 한국 종목은 네이버로 개별 조회 (외국인 보유율 포함)
     for ticker in tickers:
         try:
-            if len(tickers) == 1:
-                df = raw.copy()
-            else:
-                df = raw[ticker].copy()
-            df = df.dropna(subset=["Close"])
-            if not df.empty:
-                data[ticker] = df
+            if ticker.endswith((".KS", ".KQ")):
+                df = naver_finance.get_ohlcv(ticker, days=days)
+                if df is not None and not df.empty:
+                    data[ticker] = df
+                    continue
         except Exception:
             pass
+
+    # 해외 종목은 yfinance batch download (더 효율적)
+    remaining = [t for t in tickers if t not in data]
+    if remaining:
+        try:
+            raw = yf.download(remaining, period=period, progress=False, group_by="ticker")
+            for ticker in remaining:
+                try:
+                    if len(remaining) == 1:
+                        df = raw.copy()
+                    else:
+                        df = raw[ticker].copy()
+                    df = df.dropna(subset=["Close"])
+                    if not df.empty:
+                        data[ticker] = df
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     return data
 
 

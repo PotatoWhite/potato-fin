@@ -1,7 +1,7 @@
 {
   "cash": {
-    "USD": 45624.13,
-    "KRW": 0,
+    "USD": 31000.0,
+    "KRW": 15000000,
     "JPY": 0,
     "EUR": 0
   },
@@ -15,11 +15,41 @@
       "note": "이더리움 약 500만원 보유"
     }
   },
+  "currency_exposure": {
+    "_note": "자산 통화 비중 (보고서 헤더에 표기). cash와 별개. portfolio_tracker.py가 자동 채움 예정.",
+    "USD_asset_pct": null,
+    "KRW_asset_pct": null,
+    "JPY_asset_pct": null,
+    "EUR_asset_pct": null,
+    "_auto_computed": false,
+    "_todo": "portfolio_tracker.py 확장 — 스냅샷 시 자동 계산"
+  },
+  "dry_powder": {
+    "_note": "실제 투입 가능한 현금 (cash / NAV). 보고서 헤더 '현금 탄약'은 이 값을 써야 함.",
+    "USD_cash_pct_of_nav": null,
+    "KRW_cash_pct_of_nav": null,
+    "total_cash_pct_of_nav": null,
+    "_auto_computed": false,
+    "_todo": "portfolio_tracker.py 확장 — cash / NAV 자동 계산",
+    "_round2_finding": "Round 2 태경 발견 — 현재 보고서 헤더의 '현금 21.6%'는 KRW 자산 비중이지 dry powder 아님. S&P -10% 시 투입 가능 금액 별개로 표기 필요."
+  },
   "risk_profile": {
     "max_single_stock_pct": 20,
     "max_sector_pct": 40,
     "min_cash_pct": 5,
-    "target_cash_pct": 10
+    "target_cash_pct": 10,
+    "max_correlation_cluster_pct": 55,
+    "min_cash_pct_usd": 5,
+    "min_cash_pct_total": 10,
+    "target_cash_pct_total": 15,
+    "single_trade_risk_pct": 0.003,
+    "single_trade_risk_max_pct": 0.005,
+    "total_open_risk_cap_pct": 0.03,
+    "position_sizing_method": "vol_target",
+    "position_sizing_rationale": "Round 2 현우 측정: 적중률 측정 불가 (n<10). Kelly 공식 사용 불가 (full Kelly 음수). Vol-target (fixed fractional) 채택. n≥10 + 적중률 55%+ 달성 시 half-Kelly 재검토.",
+    "daily_vol_target_pct": 0.01,
+    "stop_loss_method": "tighter_of_ATRx2_and_support",
+    "_round2_update": "Round 2 태경 권고 반영. single_trade_risk_pct 명시, position_sizing_method 명시, min_cash_pct_usd 분리 추가. 기존 필드 (max_single_stock_pct 등) 유지."
   },
   "cash_deploy_rules": {
     "trigger_1": {
@@ -54,6 +84,7 @@
       "action": "10월 현금 확보, 선거 후 결과별 시나리오 대응"
     }
   },
-  "notes": "매매 후 수동 업데이트 필요. cash 통화별 잔고, risk_profile은 리밸런싱 기준. cash_deploy_rules는 시장 급락 시 현금 투입 규칙. annual_roadmap은 2026 연간 핵심 이벤트.",
-  "_updated": "2026-02-14"
+  "notes": "매매 후 수동 업데이트 필요. cash 통화별 잔고, risk_profile은 리밸런싱 기준. cash_deploy_rules는 시장 급락 시 현금 투입 규칙. annual_roadmap은 2026 연간 핵심 이벤트. Round 2에서 currency_exposure / dry_powder / risk_profile 확장 필드 추가 (태경).",
+  "_updated": "2026-04-21",
+  "_round2_changes": "currency_exposure 신규, dry_powder 신규, risk_profile 확장 (single_trade_risk_pct 등 7개 필드). 백업: portfolio_config.json.bak.round2 | 2026-04-21 21:XX 사용자 확인: USD $31,000 + KRW ₩15,000,000. 이전 USD 45,624.13/KRW 0 값 오류였음."
 }

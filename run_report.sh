@@ -9,7 +9,7 @@ unset CLAUDECODE 2>/dev/null || true
 
 STOCK_DIR="${STOCK_DIR:-/home/bravopotato/Spaces/finspace/potato-fin}"
 PYTHON="${PYTHON:-$STOCK_DIR/.venv/bin/python3}"
-CLAUDE="${CLAUDE:-/home/linuxbrew/.linuxbrew/bin/claude}"
+CLAUDE="${CLAUDE:-$(command -v claude 2>/dev/null || echo /home/bravopotato/.npm-global/bin/claude)}"
 LOG_DIR="${LOG_DIR:-$HOME/logs/stock-monitor}"
 
 mkdir -p "$LOG_DIR"
@@ -99,6 +99,11 @@ except Exception as e:
 " 2>/dev/null || echo "메르 블로그 RSS 수집 실패")
 echo "$MER_BLOG" >> "$LOG_FILE"
 
+# 5.7단계: 보고서 작성 전 가격 사전검증 (가격 오염 종목 사전 경고)
+echo "$(date): 사전 가격 검증 실행" >> "$LOG_FILE"
+PRECHECK_RESULT=$("$PYTHON" "$STOCK_DIR/price_verify.py" --pre-check 2>/dev/null || true)
+echo "$PRECHECK_RESULT" >> "$LOG_FILE"
+
 # 6단계: Claude Code로 보고서 생성
 REPORT_DATE=$(TZ=Asia/Seoul date +%Y-%m-%d)
 REPORT_TIME=$(TZ=Asia/Seoul date +%H%M)
@@ -114,7 +119,7 @@ $REPORT_FILE
 WebSearch를 충분히 활용하여 다음을 반드시 조사하라 (최소 52건):
 
 [최근 발표 경제지표 수집 — 5건]
-CLAUDE.md의 '최근 발표 경제지표 대시보드' 템플릿의 모든 행을 수치로 채워라.
+docs/report_template_us.md의 '경제지표 대시보드' 템플릿의 모든 행을 수치로 채워라.
 반드시 아래를 WebSearch하라:
 0-1. \"US nonfarm payrolls January 2026 actual\" (NFP, 실업률, 시간당 임금)
 0-2. \"US ISM manufacturing services PMI January 2026\" (제조업/서비스업 PMI)
@@ -134,7 +139,7 @@ CLAUDE.md의 '최근 발표 경제지표 대시보드' 템플릿의 모든 행�
 7. 숨은진주: 기관 매집+주가 미반응, 내부자 매수, 숏스퀴즈 후보
 
 [인덱스 심층 해부 — 7건]
-CLAUDE.md의 '인덱스 심층 해부' 템플릿에 따라 아래를 반드시 조사하라:
+docs/report_template_us.md의 '인덱스 심층 해부' 템플릿에 따라 아래를 반드시 조사하라:
 8. 시장 폭: \"S&P 500 stocks above 200 day moving average\" + \"S&P 500 equal weight vs cap weight RSP SPY ratio 2026\"
 9. 미 정부 신뢰: \"US Treasury auction bid to cover ratio recent\" + \"US CDS spread 2026\"
 10. 달러 이탈: \"central bank gold purchases 2026\" + \"de-dollarization yuan trade settlement\"
@@ -144,7 +149,7 @@ CLAUDE.md의 '인덱스 심층 해부' 템플릿에 따라 아래를 반드시 �
 DXY 약세 + 금 강세 + 국채 수요 약화 = 정부 신뢰 하락 시그널로 판정.
 
 [버티컬 심층 리서치 — 비중 상위 5종목, 각 2건 = 10건]
-CLAUDE.md의 '종목별 버티컬 분석 맵'을 참조하여, 포트폴리오 비중 상위 5종목에 대해 추가 WebSearch를 수행하라:
+docs/vertical_map.md의 '종목별 버티컬 분석 맵'을 참조하여, 포트폴리오 비중 상위 5종목에 대해 추가 WebSearch를 수행하라:
 - 각 종목의 [업스트림 공급] 이슈 1건 + [다운스트림 수요/경쟁] 동향 1건
 - 예: NVDA → \"data center capex spending 2026\" + \"TSMC CoWoS capacity utilization 2026\"
 - 예: MSFT → \"Azure growth rate Q1 2026\" + \"Copilot enterprise adoption 2026\"
@@ -153,7 +158,7 @@ CLAUDE.md의 '종목별 버티컬 분석 맵'을 참조하여, 포트폴리오 �
 
 종목별 대응 전략 테이블에 반드시 아래 행을 추가하라:
 | 버티컬 분석 | [업스트림] 공급 이슈 / [다운스트림] 수요 동향 / [경쟁] 점유율 변화 / [선행지표] 핵심 데이터 |
-이 행은 CLAUDE.md 버티컬 맵의 카테고리를 기준으로 최신 데이터를 채워 작성한다.
+이 행은 docs/vertical_map.md 버티컬 맵의 카테고리를 기준으로 최신 데이터를 채워 작성한다.
 
 보고서에 정확한 수치로 반영하고, 숨은진주 발굴 시 공매도/내부자거래/기관보유 데이터를 반드시 검증하세요.
 Finnhub 뉴스 센티먼트가 [6]에 포함되어 있다. 스캔들 감지 종목은 반드시 해당 뉴스를 보고서에 반영하라.
@@ -166,7 +171,7 @@ Finnhub 뉴스 센티먼트가 [6]에 포함되어 있다. 스캔들 감지 종�
 확률 vs 기관 포지션 괴리가 있으면 역발상 기회로 분석하라.
 
 [인덱스별 숨은 진주 — 12건]
-CLAUDE.md의 '숨은 진주 — 인덱스별 분리 발굴' 템플릿에 따라 4개 인덱스별로 숨은 진주를 발굴하라.
+docs/report_template_us.md의 '숨은 진주' 템플릿에 따라 4개 인덱스별로 숨은 진주를 발굴하라.
 
 ★★★ 숨은 진주 필수 규칙 ★★★
 - 보유 종목(005930.KS,000660.KS,035420.KS,195940.KQ,429760.KS,1377.T,BAYN.DE,BOTZ,CVX,GOOGL,MSFT,NVDA,PLTR,QCOM,SLV,TSLA,UNH,WRB,XOM) 절대 포함 금지
@@ -238,6 +243,29 @@ CLAUDE.md의 '숨은 진주 — 인덱스별 분리 발굴' 템플릿에 따라 
 ④ 재무 건전성: FCF(+/-), 부채비율(D/E), 유동비율, 영업이익률 → 체력 진단 (건전/보통/위험)
 종합 진단 한줄: 위 4가지를 종합하여 (셰이크아웃/분배/성장함정/건전성장/혼재) 중 하나로 판정
 
+=== 오늘의 1억 포트폴리오 (매 보고서 필수) ===
+'오늘 1억이 있다면' 섹션을 반드시 작성하라.
+현재 시장 환경, 오늘의 분석 결과, 종합 점수를 기반으로 1억(₩100,000,000)을 지금 당장 투자한다면 어떻게 배분할지 구체적으로 제시.
+
+형식:
+## 오늘 1억이 있다면
+> 현재 시장 상태 한줄 진단 + 투자 전략 한줄
+
+| 순위 | 종목 | 티커 | 배분(₩) | 비중 | 매수가 | 수량 | 근거 | 리스크 |
+|------|------|------|---------|------|--------|------|------|--------|
+| 1 | | | | | | | | |
+| ... | | | | | | | | |
+| - | 현금(대기) | - | ₩XX | XX% | - | - | 급락 대비 | - |
+
+규칙:
+- 반드시 보유종목+신규종목(숨은진주) 혼합. 보유종목만으로 채우지 말 것
+- 현금 비중 10~30% 반드시 포함 (시장 상황에 따라 조절)
+- 각 종목 매수가는 당일 기술적 분석 기반 구체적 가격
+- 3분할 매수 원칙 적용: 1차 진입가만 표기하고 2차/3차는 비고에 명시
+- 종합 점수 +2 이상 종목 우선 배분
+- 숨은진주 섹션에서 확신도 ★★★ 종목 최소 1개 포함
+- "왜 이 비중인가"를 근거란에 반드시 설명
+
 === 현금 관리 지침 ===
 아래 현금 잔고를 포함하여 '현금 관리 & 투자 배분' 섹션을 반드시 작성하라.
 - 현재 자산 배분 (주식 총액 / 현금 / 총 자산 / 현금 비중)
@@ -296,6 +324,9 @@ $MONITOR_SUMMARY
 - 이전 판단과 달라질 경우 변경 사유를 명시하라
 $THESIS_SUMMARY
 
+=== 사전 가격 검증 결과 ===
+$PRECHECK_RESULT
+
 === 기술분석 ===
 $TECH_DATA" \
     --allowedTools "WebSearch,WebFetch,Bash,Write,Read,Edit,Glob,Grep" \
@@ -333,6 +364,12 @@ echo "$(date): 포트폴리오 스냅샷" >> "$LOG_FILE"
 if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
     echo "$(date): 텔레그램 전송" >> "$LOG_FILE"
     bash "$STOCK_DIR/telegram_notify.sh" "$STOCK_DIR/$REPORT_FILE" "US 보고서" >> "$LOG_FILE" 2>&1 || true
+fi
+
+# 9.5단계: Tier 3 heartbeat (check_heartbeat.sh 가 이 파일 mtime 으로 사일런트 다운 감지)
+if [[ $EXIT_CODE -eq 0 && -f "$STOCK_DIR/$REPORT_FILE" ]]; then
+    date -Iseconds > "$LOG_DIR/.heartbeat_us"
+    echo "$(date): heartbeat 기록: $LOG_DIR/.heartbeat_us" >> "$LOG_FILE"
 fi
 
 # 10단계: 경제 지표 일정 기반 추가 보고서 스케줄링

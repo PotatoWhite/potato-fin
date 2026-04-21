@@ -871,8 +871,29 @@ def update_thesis(report_path: str) -> dict:
     # 실제 가격 조회
     actuals = fetch_actual_prices(ALL_TICKERS)
 
-    # 이전 예측 비교
-    comparisons = compare_predictions(thesis, actuals)
+    # 이전 예측 비교 — 최소 1거래일 경과 체크
+    last_updated = thesis.get('_updated', '')
+    report_date = report.get('date', '')
+    skip_comparison = False
+    if last_updated and report_date:
+        try:
+            last_dt = datetime.strptime(last_updated.split()[0], '%Y-%m-%d')
+            report_dt = datetime.strptime(report_date, '%Y-%m-%d')
+            # 두 날짜 사이 거래일(평일) 수 계산
+            trading_days = 0
+            d = last_dt + timedelta(days=1)
+            while d <= report_dt:
+                if d.weekday() < 5:  # Mon-Fri
+                    trading_days += 1
+                d += timedelta(days=1)
+            if trading_days < 1:
+                skip_comparison = True
+                print(f"[INFO] 예측 비교 건너뜀: 이전 보고서({last_updated.split()[0]})와 "
+                      f"현재 보고서({report_date}) 사이 거래일 {trading_days}일 (최소 1일 필요)")
+        except (ValueError, IndexError):
+            pass  # 파싱 실패 시 기존 로직대로 비교 수행
+
+    comparisons = compare_predictions(thesis, actuals) if not skip_comparison else []
     if comparisons:
         final_comps = [c for c in comparisons if not c['interim']]
         interim_comps = [c for c in comparisons if c['interim']]
@@ -912,19 +933,24 @@ def update_thesis(report_path: str) -> dict:
             signed_err = round(
                 (comp['predicted'] - comp['actual']) / comp['actual'] * 100, 2
             ) if comp['actual'] > 0 else 0
-            weight = 1.0  # 최종 비교는 가중치 1.0
-            bias['n_predictions'] += weight
+            # Round 2 bug fix (2026-04-21): 정수 카운트. 이전엔 weight=1.0이 float로 저장되어
+            # 중간 추적 weight=0.3과 합쳐지며 1.9, 0.3 같은 소수 값 만들었음 → metric 오염.
+            bias['n_predictions'] = int(bias.get('n_predictions', 0)) + 1
             bias['signed_errors'] = (bias.get('signed_errors', []) + [signed_err])[-10:]
             bias['avg_signed_error_pct'] = round(
                 sum(bias['signed_errors']) / len(bias['signed_errors']), 2
             )
             if comp['direction_correct']:
-                bias['direction_hits'] = bias.get('direction_hits', 0) + weight
+                bias['direction_hits'] = int(bias.get('direction_hits', 0)) + 1
             bias['direction_hit_rate'] = round(
                 bias['direction_hits'] / bias['n_predictions'] * 100, 1
             )
 
-        # 중간 추적 (가중치 0.3, 확신도 변경 없음)
+        # 중간 추적 (Round 2 bug fix 2026-04-21):
+        # 이전엔 weight=0.3으로 n_predictions/direction_hits에 누적 → 1.9, 0.3 같은 소수 값 생성.
+        # 중간 추적은 "같은 예측의 중간 스냅샷"이라 최종 비교와 별도 카운트되어야 함.
+        # 현재 정책: 중간 추적은 signed_errors 리스트에만 기여 (참고용 오차 이력).
+        # n_predictions / direction_hits 는 업데이트 안 함 — 최종 비교만이 "완성된 예측".
         for comp in interim_comps:
             ticker = comp['ticker']
             if ticker not in thesis.get('tickers', {}):
@@ -940,16 +966,10 @@ def update_thesis(report_path: str) -> dict:
             signed_err = round(
                 (comp['predicted'] - comp['actual']) / comp['actual'] * 100, 2
             ) if comp['actual'] > 0 else 0
-            weight = 0.3  # 중간 추적은 낮은 가중치
-            bias['n_predictions'] += weight
+            # signed_errors 리스트에만 append (오차 이력). n_predictions/direction_hits 건들지 않음.
             bias['signed_errors'] = (bias.get('signed_errors', []) + [signed_err])[-10:]
             bias['avg_signed_error_pct'] = round(
                 sum(bias['signed_errors']) / len(bias['signed_errors']), 2
-            )
-            if comp['direction_correct']:
-                bias['direction_hits'] = bias.get('direction_hits', 0) + weight
-            bias['direction_hit_rate'] = round(
-                bias['direction_hits'] / bias['n_predictions'] * 100, 1
             )
 
         # 정확도 누적 업데이트 (최종 비교만 카운트)

@@ -22,3 +22,7 @@ data/
 # Legacy xlsx (primary is now SQLite)
 주식.xlsx
 주식_통합.xlsx
+
+# Backup files (config 변경 백업)
+*.bak
+*.bak.*

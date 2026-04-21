@@ -5,37 +5,49 @@ import argparse
 import warnings
 
 from portfolio_db import load_portfolio, add_snapshot, get_db, SECTOR
+import naver_finance  # Phase C 2026-04-21: 네이버 우선, yfinance fallback
 
 warnings.filterwarnings('ignore')
 
 
 def fetch_prices(portfolio):
-    """yfinance로 현재가 + 환율 조회"""
-    tickers = [h['ticker'] for h in portfolio]
-    fx_pairs = ['USDKRW=X', 'JPYKRW=X', 'EURKRW=X']
-    data = yf.download(tickers + fx_pairs, period='5d', progress=False)
+    """현재가 + 환율 조회 — 네이버 우선, yfinance fallback.
 
+    한국 주식: 네이버 chart API (정확, 0분 지연)
+    미국/일본: 네이버 polling API (실시간)
+    독일 (BAYN.DE): yfinance (네이버 미지원)
+    환율: 네이버 marketindex/exchange/*/prices
+    """
     prices = {}
     for h in portfolio:
         ticker = h['ticker']
         try:
-            col = data['Close'][ticker].dropna()
-            if not col.empty:
-                price = float(col.iloc[-1])
+            price = naver_finance.get_price(ticker)
+            if price is not None:
                 prices[ticker] = int(price) if price > 100 else round(price, 2)
             else:
                 prices[ticker] = None
-        except Exception:
+        except Exception as e:
+            print(f"  ⚠ {ticker} 가격 조회 에러: {e}")
             prices[ticker] = None
 
-    # 환율 (1통화 → KRW)
+    # 환율 (네이버 우선) — 1통화 → KRW
     fx_rates = {'KRW': 1.0}
-    for pair, key in [('USDKRW=X', 'USD'), ('JPYKRW=X', 'JPY'), ('EURKRW=X', 'EUR')]:
+    for key in ['USD', 'JPY', 'EUR']:
+        rate = None
         try:
-            col = data['Close'][pair].dropna()
-            fx_rates[key] = round(float(col.iloc[-1]), 2) if not col.empty else None
+            rate = naver_finance.get_exchange_rate(key)
         except Exception:
-            fx_rates[key] = None
+            rate = None
+        # 네이버 실패 시 yfinance fallback
+        if rate is None:
+            try:
+                d = yf.Ticker(f'{key}KRW=X').history(period='5d')
+                if not d.empty:
+                    rate = round(float(d['Close'].iloc[-1]), 2)
+            except Exception:
+                rate = None
+        fx_rates[key] = rate
 
     return prices, fx_rates
 

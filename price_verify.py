@@ -68,25 +68,20 @@ def _load_cost_basis() -> dict:
 
 
 def fetch_actual_prices() -> dict:
-    """yfinance에서 전 종목 최신 종가 조회."""
-    import yfinance as yf
+    """전 종목 최신 종가 조회 — 네이버 우선, yfinance fallback.
+
+    Phase C 2026-04-21: naver_finance.get_price() 사용으로 한국 주식 정확도 향상.
+    """
+    import naver_finance
     tickers = list(set(CURRENCY.keys()))
-    data = yf.download(tickers, period='2d', progress=False, group_by='ticker')
     prices = {}
     for t in tickers:
         try:
-            close = data[t]['Close'].dropna()
-            if len(close) >= 1:
-                prices[t] = float(close.iloc[-1])
+            price = naver_finance.get_price(t)
+            if price is not None:
+                prices[t] = float(price)
         except Exception:
-            try:
-                close = data['Close'].dropna()
-                if hasattr(close, 'columns'):
-                    close = close[t].dropna()
-                if len(close) >= 1:
-                    prices[t] = float(close.iloc[-1])
-            except Exception:
-                pass
+            pass
     return prices
 
 
