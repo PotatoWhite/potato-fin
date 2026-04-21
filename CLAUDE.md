@@ -24,7 +24,7 @@
 ├── realtime_price_tracker.py # 장중 1분 실시간 가격 (cron)
 ├── telegram_bot.py        # 텔레그램 봇 (/t /p /pf /s /r /a /m /ac /w /v /h)
 ├── telegram_notify.sh     # 보고서 → Notion 업로드 + Telegram 링크 (SILENT types 지원)
-├── run_daily_digest.sh    # ⭐ Daily Digest (매일 08:00, 간밤 24h 1통 통합)
+├── run_daily_digest.sh    # ⭐ Daily Digest (매일 07:00, 간밤 24h 1통 통합)
 ├── run_self_improve.sh    # ⭐ 자기개선 (일 22:00, evaluation 기반 개선 제안 → branch)
 ├── run_report.sh          # Tier 3 US 보고서 (05:05 KST)
 ├── run_korea_report.sh    # Tier 3 한국 보고서 (15:40 KST)
@@ -468,7 +468,7 @@ claude
 - US / KR / Premarket / Midcheck / DeepDive
 
 **ACTIVE types** (텔레그램 알림 O):
-- Daily Digest (매일 08:00 1통, 간밤 24h 통합)
+- Daily Digest (매일 07:00 1통, 간밤 24h 통합)
 - Scout (주간 1건)
 - Earnings D-7 (필요 시만)
 - Findings (긴급 브리핑 / 이벤트 플래시)
