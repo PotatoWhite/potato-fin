@@ -400,3 +400,96 @@ claude
 3. **월 비용 $644 실측**: Tier1~3 전부 합산. Alt C (주 1회 Deep Dive 3종목) 파일럿 스크립트 준비됨 (`run_deep_dive_3.sh`)
 4. **현금 dry powder 28.2%** (USD $31K + KRW ₩15M): `portfolio_config.json` 에 명시됨. 보고서 헤더에 반드시 분리 표기.
 5. **포지션 사이징 vol-target 채택**: Kelly 불가 (적중률 < 50%). NAV × 0.3% = Risk $, Risk/Stop = Size.
+
+---
+
+# Claude Code Slash Commands (2026-04-22)
+
+프로젝트 `.claude/commands/` 에 정의된 사용자 호출 가능 명령어. 모든 명령은 **Notion 자동 발행 + Telegram 알림** 파이프라인 포함.
+
+| 명령 | 설명 | 소요 | 산출물 |
+|------|------|------|--------|
+| `/brief` | 긴급 브리핑 (즉시 대응 5개) | 2~3분 | `보고서/브리핑/` |
+| `/report-us` | US 정식 일일 보고서 (Opus) | 10~15분 | `보고서/` |
+| `/report-kr` | 한국 정식 일일 보고서 | 10분 | `보고서/한국/` |
+| `/deep-dive` | Alt C Deep Dive 3종목 | 3~5분 | `보고서/deep_dive_3/` |
+| `/kr-flow` | 한국 수급 즉시 조회 | 즉시 | 터미널 (Notion X) |
+| `/diag` | 13명 페르소나 팀 진단 | 10~20분 | `team/findings/round{N}/` |
+| `/evaluation` | 예측 평가 (weekly/monthly/quarterly) | 5분 | `team/evaluations/` |
+
+## 사용 예
+```
+/brief                          # 긴급 브리핑
+/deep-dive                      # 주간 3종목 집중
+/evaluation weekly              # 지난 주 적중률 정산
+/diag "update_thesis.py 버그"   # 특정 이슈 진단
+```
+
+---
+
+# 최종 Cron 스케줄 (2026-04-22)
+
+```cron
+# ─── Tier 1: Python only (매분/5분/30분) ───
+* * * * * realtime_price_tracker.py    # 장중 분단위
+*/30 * * * * news_monitor.py           # 뉴스 감시
+*/5 * * * * price_alerts.py            # 가격 알림
+
+# ─── 포트폴리오 스냅샷 ───
+36 15 * * 1-5 portfolio_tracker.py --snapshot   # KR 마감 후
+1 5 * * 2-6 portfolio_tracker.py --snapshot    # US 마감 후
+
+# ─── Tier 2: Sonnet 브리핑 ($3-4/회) ───
+30 21 * * 1-5 run_premarket.sh      # 장전
+0 1 * * 2-6 run_midcheck.sh         # 장중
+
+# ─── Tier 3: Opus 정식 보고서 ($10-15/회) ───
+40 15 * * 1-5 run_korea_report.sh   # 한국
+5 5 * * 2-6 run_report.sh           # US
+
+# ─── 주간/월간 자동 작업 ───
+0 16 * * 5 run_scout_weekly.sh      # 금 16:00 주간 스카우트 (시우)
+0 17 * * 5 run_deep_dive_3.sh       # 금 17:00 Deep Dive 3 (Alt C)
+0 21 * * 0 run_evaluation.sh weekly # 일 21:00 주간 평가
+0 10 1 * * run_evaluation.sh monthly # 매월 1일 10:00 월간 평가
+
+# ─── 감시/자가개선 ───
+0 * * * * check_heartbeat.sh        # 매시간 Tier 3 stale 감지
+0 14 * * 1-5 run_improve.sh         # 평일 14:00 자가개선 (Sonnet)
+```
+
+**모든 cron 실행**: `telegram_notify.sh` → `notion_publish.py` → Notion DB 업로드 + Telegram 링크
+
+**로그인 불필요**: NOTION_TOKEN (Integration Secret) 기반 — OAuth 아님. `.env` 에만 있으면 cron 자동 작동.
+
+**설정 가이드**: `docs/notion_setup.md` (5분)
+
+---
+
+# Evaluation 프로세스 (2026-04-22)
+
+potato-fin 예측 품질을 **정량 측정**. Round 2 현우 지적 (적중률 수치 버그) 해결 후 정기화.
+
+## 3-tier Evaluation
+
+| 주기 | 스크립트 | 출력 | Notion type |
+|------|---------|------|------------|
+| **Weekly** | `run_evaluation.sh weekly` | 50~80줄, 방향 적중률 + 오차 + bias | Findings + "weekly" |
+| **Monthly** | `run_evaluation.sh monthly` | 100~150줄, 월간 + best/worst 5 + S&P 알파 | Findings + "monthly" |
+| **Quarterly** | `run_evaluation.sh quarterly` | 150~250줄, PnL + 13F + ROI 판정 | Findings + "quarterly" |
+
+## 자동 트리거 (의사결정 flag)
+
+- 방향 적중률 < 45% 3주 연속 → Alt B/C 전환 제안
+- 오차율 > 10% 월평균 → 예측 레인지 ATR×1.5 자동 확대
+- heartbeat stale > 2건/월 → 운영팀 긴급 알림
+- NAV vs S&P 알파 < 0 6개월 → 패시브 전환 검토
+
+## 페르소나 주도
+
+- **현우 (potato-quant)**: 숫자 측정 주도
+- **수아 (potato-devil)**: vanity metric 폭로
+- **민지 (potato-pm)**: 사용자 결정 연결성
+- **지훈 (potato-architect)**: 데이터 무결성
+
+세부: `.claude/commands/evaluation.md`
