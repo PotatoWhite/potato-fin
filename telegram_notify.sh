@@ -36,6 +36,15 @@ case "$LABEL" in
     *)                             NOTION_TYPE="Findings" ;;
 esac
 
+# 텔레그램 알림 톤다운 — Notion 업로드는 유지, 알림만 끈다
+# SILENT_TYPES: 이 타입은 Notion만, Telegram 안 보냄 (사용자가 Notion 앱에서 확인)
+# ACTIVE: Critical + Daily Digest + Scout + Earnings D-7 만 알림
+SILENT_TYPES=("US" "KR" "Premarket" "Midcheck" "DeepDive")
+IS_SILENT=0
+for s in "${SILENT_TYPES[@]}"; do
+    [[ "$NOTION_TYPE" == "$s" ]] && IS_SILENT=1 && break
+done
+
 # 한 줄 요약 추출 (보고서 3번째 줄 헤더에서)
 SUMMARY=$(sed -n '3p' "$REPORT_FILE" | sed 's/^> //; s/\*\*//g' | cut -c1-200 || echo "")
 
@@ -62,24 +71,39 @@ else
 ⚠️ Notion 업로드 안 됨 (NOTION_TOKEN 미설정 또는 실패)"
 fi
 
-curl -s -X POST "$API/sendMessage" \
-    -d chat_id="$CHAT_ID" \
-    -d text="$MSG" \
-    -d parse_mode="Markdown" \
-    -d disable_web_page_preview="false" > /dev/null 2>&1 \
-    || curl -s -X POST "$API/sendMessage" \
-        -d chat_id="$CHAT_ID" \
-        -d text="$MSG" > /dev/null 2>&1 || true   # Markdown 실패 시 plaintext fallback
-
-# 3) Notion 업로드 실패했을 때만 MD 파일 직접 전송 (대체 수단)
-if [[ -z "$NOTION_URL" ]]; then
-    curl -s -X POST "$API/sendDocument" \
-        -F chat_id="$CHAT_ID" \
-        -F document=@"$REPORT_FILE" \
-        -F caption="${LABEL} - ${REPORT_NAME} (원본 MD, Notion 미업로드)" > /dev/null 2>&1 || true
-    echo "텔레그램 전송: ${REPORT_FILE} (Notion 미업로드)"
+# SILENT 타입은 텔레그램 알림 skip (Notion 만 업로드됨)
+if [[ "$IS_SILENT" == "1" ]]; then
+    echo "[silent] $NOTION_TYPE → Notion 업로드만. 텔레그램 알림 skip. (Daily Digest 가 08:00 에 요약)"
+    if [[ -n "$NOTION_URL" ]]; then
+        echo "  Notion: $NOTION_URL"
+    fi
+    # Silent 모드에서도 Notion 업로드 실패 시는 fallback 알림 (파이프라인 붕괴 대비)
+    if [[ -z "$NOTION_URL" ]]; then
+        curl -s -X POST "$API/sendMessage" \
+            -d chat_id="$CHAT_ID" \
+            -d text="⚠️ ${LABEL} 생성됐으나 Notion 업로드 실패 — ${REPORT_FILE}" > /dev/null 2>&1 || true
+    fi
 else
-    echo "텔레그램 전송: Notion 링크만 (${NOTION_URL})"
+    # Critical (Findings / Earnings / Scout / Digest) 는 알림 보냄
+    curl -s -X POST "$API/sendMessage" \
+        -d chat_id="$CHAT_ID" \
+        -d text="$MSG" \
+        -d parse_mode="Markdown" \
+        -d disable_web_page_preview="false" > /dev/null 2>&1 \
+        || curl -s -X POST "$API/sendMessage" \
+            -d chat_id="$CHAT_ID" \
+            -d text="$MSG" > /dev/null 2>&1 || true
+
+    # Notion 업로드 실패 시에만 MD 파일 직접 전송
+    if [[ -z "$NOTION_URL" ]]; then
+        curl -s -X POST "$API/sendDocument" \
+            -F chat_id="$CHAT_ID" \
+            -F document=@"$REPORT_FILE" \
+            -F caption="${LABEL} - ${REPORT_NAME} (원본 MD, Notion 미업로드)" > /dev/null 2>&1 || true
+        echo "텔레그램 전송: ${REPORT_FILE} (Notion 미업로드)"
+    else
+        echo "텔레그램 전송: Notion 링크 (${NOTION_URL})"
+    fi
 fi
 
 # 4) 데스크톱 알림 (선택)

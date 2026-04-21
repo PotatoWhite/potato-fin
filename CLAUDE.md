@@ -23,8 +23,9 @@
 ├── price_verify.py        # 보고서 가격 검증 + 자동 보정
 ├── realtime_price_tracker.py # 장중 1분 실시간 가격 (cron)
 ├── telegram_bot.py        # 텔레그램 봇 (/t /p /pf /s /r /a /m /ac /w /v /h)
-├── telegram_notify.sh     # 보고서 PDF 변환 + 텔레그램 전송
-├── md_to_pdf.py           # Markdown → PDF 변환
+├── telegram_notify.sh     # 보고서 → Notion 업로드 + Telegram 링크 (SILENT types 지원)
+├── run_daily_digest.sh    # ⭐ Daily Digest (매일 08:00, 간밤 24h 1통 통합)
+├── run_self_improve.sh    # ⭐ 자기개선 (일 22:00, evaluation 기반 개선 제안 → branch)
 ├── run_report.sh          # Tier 3 US 보고서 (05:05 KST)
 ├── run_korea_report.sh    # Tier 3 한국 보고서 (15:40 KST)
 ├── run_premarket.sh       # Tier 2 장전 브리핑 (21:30 KST)
@@ -454,11 +455,27 @@ claude
 0 10 1 * * run_evaluation.sh monthly # 매월 1일 10:00 월간 평가
 
 # ─── 감시/자가개선 ───
-0 * * * * check_heartbeat.sh        # 매시간 Tier 3 stale 감지
-0 14 * * 1-5 run_improve.sh         # 평일 14:00 자가개선 (Sonnet)
+0 * * * *       check_heartbeat.sh        # 매시간 Tier 3 stale 감지
+0 8 * * *       run_daily_digest.sh       # 매일 08:00 간밤 24h Digest (텔레그램 1통)
+0 22 * * 0      run_self_improve.sh       # 일 22:00 자기개선 (evaluation 기반, branch only)
 ```
 
-**모든 cron 실행**: `telegram_notify.sh` → `notion_publish.py` → Notion DB 업로드 + Telegram 링크
+## 알림 톤다운 정책 (2026-04-22)
+
+사용자 피드백: **알림 10~15건/일 → 해석 불가능**. 해결:
+
+**SILENT types** (Notion 업로드만, 텔레그램 알림 X):
+- US / KR / Premarket / Midcheck / DeepDive
+
+**ACTIVE types** (텔레그램 알림 O):
+- Daily Digest (매일 08:00 1통, 간밤 24h 통합)
+- Scout (주간 1건)
+- Earnings D-7 (필요 시만)
+- Findings (긴급 브리핑 / 이벤트 플래시)
+
+**기대 효과**: 하루 평균 알림 10+건 → **2~3건**. 해석 가능.
+
+**모든 cron 실행**: `telegram_notify.sh` → `notion_publish.py` → Notion DB 업로드 (+ SILENT 아니면 Telegram 링크)
 
 **로그인 불필요**: NOTION_TOKEN (Integration Secret) 기반 — OAuth 아님. `.env` 에만 있으면 cron 자동 작동.
 

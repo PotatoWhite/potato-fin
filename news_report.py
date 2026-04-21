@@ -13,6 +13,7 @@ Usage:
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import urllib.parse
@@ -25,7 +26,7 @@ REPORT_DIR = os.path.join(BASE_DIR, "보고서", "뉴스")
 THESIS_FILE = os.path.join(BASE_DIR, "investment_thesis.json")
 ALERT_CONFIG_FILE = os.path.join(BASE_DIR, "alert_config.json")
 LOG_DIR = os.path.expanduser("~/logs/stock-monitor")
-CLAUDE_BIN = "/home/linuxbrew/.linuxbrew/bin/claude"
+CLAUDE_BIN = shutil.which("claude") or "/home/bravopotato/.npm-global/bin/claude"
 PYTHON_BIN = os.path.join(BASE_DIR, ".venv", "bin", "python3")
 
 os.makedirs(REPORT_DIR, exist_ok=True)

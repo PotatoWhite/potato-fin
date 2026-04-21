@@ -26,6 +26,7 @@ import urllib.request
 import urllib.parse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import shutil
 import subprocess
 import threading
 
@@ -43,7 +44,7 @@ if _env_file.exists():
 BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', '')
 API = f"https://api.telegram.org/bot{BOT_TOKEN}"
-CLAUDE_PATH = "/home/linuxbrew/.linuxbrew/bin/claude"
+CLAUDE_PATH = shutil.which("claude") or "/home/bravopotato/.npm-global/bin/claude"
 
 # 실행 가능한 스크립트 작업 정의
 EXECUTE_TASKS = {
@@ -649,7 +650,7 @@ def handle_execute(action: str, chat_id: str) -> str | None:
                     timeout=task['timeout'],
                     cwd=str(STOCK_DIR),
                     env={**os.environ,
-                         'PATH': f"{STOCK_DIR / '.venv/bin'}:/home/linuxbrew/.linuxbrew/bin:{os.environ.get('PATH', '')}"}
+                         'PATH': f"{STOCK_DIR / '.venv/bin'}:{Path(CLAUDE_PATH).parent}:/home/linuxbrew/.linuxbrew/bin:{os.environ.get('PATH', '')}"}
                 )
                 if result.returncode == 0:
                     output = result.stdout.strip()
@@ -944,9 +945,28 @@ def handle_message(text: str, chat_id: str) -> str | None:
         return f"처리 오류: {e}"
 
 
+def _clear_webhook():
+    """Long Polling 전 webhook 삭제 (409 Conflict 방지)."""
+    try:
+        url = f"{API}/deleteWebhook?drop_pending_updates=true"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            if data.get('ok'):
+                print("[BOT] webhook 삭제 완료 (409 방지)")
+            else:
+                print(f"[BOT] webhook 삭제 응답: {data}")
+    except Exception as e:
+        print(f"[BOT] webhook 삭제 실패: {e}")
+
+
 def poll_updates():
     """텔레그램 Long Polling으로 메시지 수신."""
     print(f"[BOT] 시작 — {datetime.now(KST).strftime('%Y-%m-%d %H:%M KST')}")
+
+    # 시작 전 webhook 정리 — 409 Conflict 방지
+    _clear_webhook()
+
     offset = 0
     _err_count = 0  # 연속 오류 횟수 (backoff용)
 
@@ -993,6 +1013,16 @@ def poll_updates():
             break
         except Exception as e:
             _err_count += 1
+            err_str = str(e)
+
+            # 409 Conflict = 다른 인스턴스 충돌 → webhook 재삭제 후 재시도
+            if '409' in err_str:
+                if _err_count == 1 or _err_count % 50 == 0:
+                    print(f"[BOT] 409 Conflict ({_err_count}회) — webhook 재삭제 시도")
+                    _clear_webhook()
+                    time.sleep(3)
+                    continue
+
             # 연속 오류 시 지수 백오프 (최대 120초), 첫 오류만 출력
             backoff = min(5 * (2 ** min(_err_count - 1, 4)), 120)
             if _err_count == 1 or _err_count % 10 == 0:
