@@ -111,20 +111,27 @@ try:
     from portfolio_db import get_db
     conn = get_db()
     cur = conn.cursor()
+    # timestamp 포맷 YYYYMMDDHHMM. 하루에 여러 스냅샷 → 최신 1개만.
     cur.execute("""
-        SELECT snapshot_date, SUM(valuation_krw) as nav_krw, SUM(pnl_krw) as pnl_krw
+        SELECT timestamp, SUM(valuation_krw) as nav_krw, SUM(pnl_krw) as pnl_krw
         FROM snapshots
-        WHERE snapshot_date >= datetime('now', '-2 days')
-        GROUP BY snapshot_date
-        ORDER BY snapshot_date DESC
-        LIMIT 5
+        WHERE timestamp IN (
+            SELECT MAX(timestamp) FROM snapshots
+            GROUP BY substr(timestamp, 1, 8)
+        )
+        GROUP BY timestamp
+        ORDER BY timestamp DESC
+        LIMIT 3
     """)
     rows = cur.fetchall()
     if rows:
-        for d, nav, pnl in rows[:3]:
+        for ts, nav, pnl in rows:
+            # YYYYMMDDHHMM → YYYY-MM-DD HH:MM
+            d = f"{ts[:4]}-{ts[4:6]}-{ts[6:8]} {ts[8:10]}:{ts[10:12]}" if len(ts) == 12 else ts
             nav_m = nav / 1_000_000 if nav else 0
             pnl_m = pnl / 1_000_000 if pnl else 0
-            print(f"- {d}: NAV ₩{nav_m:.1f}M / PnL ₩{pnl_m:+.1f}M")
+            pct = (pnl / (nav - pnl) * 100) if nav and pnl else 0
+            print(f"- {d}: NAV ₩{nav_m:.1f}M / PnL ₩{pnl_m:+.1f}M ({pct:+.1f}%)")
     conn.close()
 except Exception as e:
     print(f"- (조회 실패: {e})")
