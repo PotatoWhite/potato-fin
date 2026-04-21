@@ -106,6 +106,44 @@ def fetch_stock_detail(ticker):
         pass
 
     detail["insider_transactions"] = insider_txns
+
+    # Phase C 2026-04-21: 한국 종목은 네이버 수급 + 펀더멘탈 + 거래원 추가
+    # yf.Ticker.info는 한국 종목에서 누락되는 필드 많음 → 네이버가 보완
+    if ticker.endswith((".KS", ".KQ")):
+        try:
+            import naver_finance
+            flow = naver_finance.get_kr_investor_flow(ticker, days=3)
+            if flow and flow.get("summary"):
+                detail["naver_flow_summary"] = flow["summary"]      # 3일 누적 외/기/개 순매수
+                detail["naver_flow_trend"] = flow["trend"]          # 일별 배열
+            kf = naver_finance.get_kr_fundamentals(ticker)
+            if kf:
+                # yf info 누락 시 네이버 값으로 fallback
+                if detail.get("pe_ttm") is None and kf.get("per"):
+                    detail["pe_ttm"] = kf["per"]
+                if detail.get("dividend_yield") is None and kf.get("div_yield_pct"):
+                    detail["dividend_yield"] = kf["div_yield_pct"] / 100
+                detail["naver_per"] = kf.get("per")
+                detail["naver_pbr"] = kf.get("pbr")
+                detail["naver_eps"] = kf.get("eps")
+                detail["naver_bps"] = kf.get("bps")
+                detail["naver_est_per"] = kf.get("est_per")
+                detail["naver_est_eps"] = kf.get("est_eps")
+                detail["naver_foreign_rate_pct"] = kf.get("foreign_rate_pct")
+                detail["naver_div_per_share"] = kf.get("div_per_share")
+        except Exception as e:
+            detail["_naver_flow_error"] = str(e)
+
+        try:
+            import naver_broker
+            broker = naver_broker.get_brokers(ticker, trader_day=1)
+            if broker:
+                detail["broker_summary"] = broker["summary"]         # 외국계/국내 순매수, 집중도
+                detail["broker_sell_top"] = broker["sell_top"]       # 매도 TOP5 (외국계 구분)
+                detail["broker_buy_top"] = broker["buy_top"]         # 매수 TOP5
+        except Exception as e:
+            detail["_naver_broker_error"] = str(e)
+
     return detail
 
 

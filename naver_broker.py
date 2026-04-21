@@ -68,29 +68,69 @@ def _parse_volume(text: str) -> int:
         return 0
 
 
+# 외국계 창구 이름 패턴 (HTML CSS class 누락 시 이름 기반 fallback)
+# 한글 이름 + 영문 약칭 모두 커버
+FOREIGN_BROKER_PATTERNS = [
+    "모간", "모건", "모르간",  # 제이피모간, 모건스탠리, JP모건, JPMorgan
+    "골드만",  # 골드만삭스
+    "씨티",  # 시티그룹, 씨티글로벌
+    "메릴", "메릴린치",  # BofA Merrill
+    "크레디", "크레딧",  # 크레디트스위스, 크레디아그리콜
+    "UBS", "유비에스",
+    "도이치", "도이체",  # Deutsche Bank
+    "노무라", "노무라금융",
+    "다이와",
+    "바클레이", "바클레이스",  # Barclays
+    "HSBC", "에이치에스비씨",
+    "BNP", "비엔피",
+    "소시에테",  # Societe Generale
+    "매쿼리",  # Macquarie
+    "CLSA", "씨엘에스에이",
+    "CIMB",
+    "RBC",
+    "INSTINET",
+    "BofA", "뱅크오브아메리카",
+]
+
+
+def _is_foreign_by_name(name: str) -> bool:
+    """이름 기반 외국계 판정 (HTML nv01 class 누락 대비)."""
+    if not name:
+        return False
+    upper = name.upper()
+    for pat in FOREIGN_BROKER_PATTERNS:
+        if pat in name or pat.upper() in upper:
+            return True
+    return False
+
+
 def _extract_row(cells: list, offset: int) -> Optional[dict[str, Any]]:
     """
     매도/매수 한 쌍의 (title_td, num_td) 에서 창구 정보 추출.
     offset=0 매도측, offset=2 매수측.
+
+    외국계 판정 우선순위:
+      1. HTML `<span class="nv01">` 존재 (네이버 표준)
+      2. 창구 이름 패턴 매칭 (fallback, SK하이닉스 제이피모간 등 HTML 누락 대비)
     """
     if len(cells) < offset + 2:
         return None
     title_td = cells[offset]
     num_td = cells[offset + 1]
 
-    # 빈 셀 (공백 유지용)
     if not title_td.text.strip():
         return None
 
-    # 외국계 판정: title_td 안에 <span class="nv01">가 있으면 외국계
+    # 1차: HTML CSS class 기반
     foreign_span = title_td.select_one("span.nv01")
-    is_foreign = foreign_span is not None
 
-    # 창구 이름
     if foreign_span:
         broker_name = foreign_span.text.strip()
+        is_foreign = True
     else:
         broker_name = title_td.get_text(strip=True)
+        # 2차: 이름 패턴 fallback
+        is_foreign = _is_foreign_by_name(broker_name)
 
     if not broker_name:
         return None
