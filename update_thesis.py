@@ -27,24 +27,24 @@ REPORT_DIR = STOCK_DIR / "보고서"
 KR_REPORT_DIR = REPORT_DIR / "한국"
 KST = timezone(timedelta(hours=9))
 
-# 보유 종목 (US + KR + JP + EU)
-TICKERS_US = ["NVDA", "MSFT", "GOOGL", "TSLA", "PLTR", "CVX", "XOM",
-              "UNH", "WRB", "QCOM", "BOTZ", "SLV"]
-TICKERS_KR = ["005930.KS", "000660.KS", "035420.KS", "195940.KQ", "429760.KS"]
+# 보유 종목 (US + KR + JP + EU) — 4/28 리셋 후 21종목
+TICKERS_US = ["NVDA", "MSFT", "GOOGL", "TSLA", "XOM", "WRB", "BOTZ", "SLV",
+              "GLD", "IWM", "LMT", "WMB", "XLE"]
+TICKERS_KR = ["005930.KS", "000660.KS", "005380.KS",
+              "035420.KS", "195940.KQ", "429760.KS"]
 TICKERS_JP = ["1377.T"]
 TICKERS_EU = ["BAYN.DE"]
 ALL_TICKERS = TICKERS_US + TICKERS_KR + TICKERS_JP + TICKERS_EU
 
-# 티커 → 이름 매핑 (보고서 파싱용)
+# 티커 → 이름 매핑 (보고서 파싱용). news_monitor.py 와 일관.
 TICKER_NAMES = {
-    "NVDA": "엔비디아", "MSFT": "마이크로소프트", "GOOGL": "알파벳",
-    "TSLA": "테슬라", "PLTR": "팔란티어", "CVX": "셰브론",
-    "XOM": "엑슨모빌", "UNH": "유나이티드헬스", "WRB": "버클리",
-    "QCOM": "퀄컴", "BOTZ": "로보틱스", "SLV": "은",
-    "005930.KS": "삼성전자", "000660.KS": "SK하이닉스",
-    "035420.KS": "NAVER", "195940.KQ": "HK이노엔",
-    "429760.KS": "PLUS S&P500", "1377.T": "사카타종묘",
-    "BAYN.DE": "바이엘",
+    "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "005380.KS": "현대차",
+    "035420.KS": "NAVER", "195940.KQ": "HK이노엔", "429760.KS": "PLUS S&P500",
+    "1377.T": "사카타종묘", "BAYN.DE": "바이엘",
+    "BOTZ": "BOTZ", "GLD": "GLD금ETF", "GOOGL": "알파벳", "IWM": "Russell2000",
+    "LMT": "록히드마틴", "MSFT": "마이크로소프트", "NVDA": "엔비디아",
+    "SLV": "SLV은ETF", "TSLA": "테슬라", "WMB": "윌리엄스",
+    "WRB": "WR버클리", "XLE": "XLE에너지ETF", "XOM": "엑슨모빌",
 }
 
 # ── 가격 파싱 유틸 ─────────────────────────────────────────
