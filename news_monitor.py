@@ -81,12 +81,12 @@ MARKETS = {
 }
 
 TICKER_MARKET = {
+    "005930.KS": "KR", "000660.KS": "KR", "005380.KS": "KR",
     "035420.KS": "KR", "195940.KQ": "KR", "429760.KS": "KR",
-    "005930.KS": "KR", "000660.KS": "KR",
     "1377.T": "JP", "BAYN.DE": "EU",
-    "BOTZ": "US", "CVX": "US", "GOOGL": "US", "MSFT": "US",
-    "NVDA": "US", "PLTR": "US", "QCOM": "US", "SLV": "US",
-    "TSLA": "US", "UNH": "US", "WRB": "US", "XOM": "US",
+    "BOTZ": "US", "GLD": "US", "GOOGL": "US", "IWM": "US", "LMT": "US",
+    "MSFT": "US", "NVDA": "US", "SLV": "US", "TSLA": "US",
+    "WMB": "US", "WRB": "US", "XLE": "US", "XOM": "US",
 }
 
 # Finnhub 미지원 (비미국)
@@ -94,12 +94,13 @@ NON_US_SUFFIXES = ('.KS', '.KQ', '.T', '.DE', '.L', '.HK')
 
 # 종목별 포트폴리오 비중 (alert_config.json에서 동적으로 읽지만 폴백용)
 TICKER_NAMES = {
+    "005930.KS": "삼성전자", "000660.KS": "SK하이닉스", "005380.KS": "현대차",
     "035420.KS": "NAVER", "195940.KQ": "HK이노엔", "429760.KS": "PLUS S&P500",
-    "005930.KS": "삼성전자", "000660.KS": "SK하이닉스",
     "1377.T": "사카타종묘", "BAYN.DE": "바이엘",
-    "BOTZ": "BOTZ", "CVX": "셰브론", "GOOGL": "알파벳", "MSFT": "마이크로소프트",
-    "NVDA": "엔비디아", "PLTR": "팔란티어", "QCOM": "퀄컴", "SLV": "은ETF",
-    "TSLA": "테슬라", "UNH": "유나이티드헬스", "WRB": "WR버클리", "XOM": "엑슨모빌",
+    "BOTZ": "BOTZ", "GLD": "GLD금ETF", "GOOGL": "알파벳", "IWM": "Russell2000",
+    "LMT": "록히드마틴", "MSFT": "마이크로소프트", "NVDA": "엔비디아",
+    "SLV": "SLV은ETF", "TSLA": "테슬라", "WMB": "윌리엄스",
+    "WRB": "WR버클리", "XLE": "XLE에너지ETF", "XOM": "엑슨모빌",
 }
 
 # ─── 뉴스 키워드 (임팩트 분류) ───
