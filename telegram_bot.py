@@ -761,13 +761,27 @@ def handle_freetext(text: str, chat_id: str = CHAT_ID) -> str | None:
     name_to_ticker = {v: k for k, v in TICKER_NAMES.items()}
     # 짧은 이름도 (삼성→삼성전자, SK→SK하이닉스 등)
     ALIASES = {
+        # 한국 6
         '삼성': '005930.KS', '삼전': '005930.KS', '삼성전자': '005930.KS',
         'sk': '000660.KS', 'sk하이닉스': '000660.KS', '하이닉스': '000660.KS',
+        '현대차': '005380.KS', '현대': '005380.KS', '현차': '005380.KS',
         '네이버': '035420.KS', 'naver': '035420.KS',
         '이노엔': '195940.KQ', 'hk이노엔': '195940.KQ', '케이캡': '195940.KQ',
-        '엔비디아': 'NVDA', '테슬라': 'TSLA', '구글': 'GOOGL', '마소': 'MSFT',
-        '마이크로소프트': 'MSFT', '팔란티어': 'PLTR', '퀄컴': 'QCOM',
-        '셰브론': 'CVX', '엑슨': 'XOM', '유나이티드': 'UNH', '바이엘': 'BAYN.DE',
+        'plus s&p': '429760.KS', 's&p500': '429760.KS', '플러스': '429760.KS',
+        # 미국 13
+        '엔비디아': 'NVDA', '테슬라': 'TSLA', '구글': 'GOOGL', '알파벳': 'GOOGL',
+        '마소': 'MSFT', '마이크로소프트': 'MSFT',
+        '엑슨': 'XOM', '엑슨모빌': 'XOM',
+        '버클리': 'WRB', 'wr버클리': 'WRB',
+        '로보틱스': 'BOTZ', 'botz': 'BOTZ',
+        '은etf': 'SLV', '은': 'SLV', 'slv': 'SLV',
+        '금etf': 'GLD', '금': 'GLD', 'gld': 'GLD',
+        '러셀': 'IWM', 'russell': 'IWM', 'iwm': 'IWM', '소형주': 'IWM',
+        '록히드': 'LMT', '록히드마틴': 'LMT', 'lmt': 'LMT',
+        '윌리엄스': 'WMB', 'wmb': 'WMB',
+        '에너지etf': 'XLE', 'xle': 'XLE',
+        # 일본/EU
+        '바이엘': 'BAYN.DE',
         '사카타': '1377.T',
     }
 
