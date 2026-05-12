@@ -22,16 +22,17 @@ from pathlib import Path
 
 STOCK_DIR = Path(__file__).resolve().parent
 
-# ── 티커 매핑 ─────────────────────────────────────────────
+# ── 티커 매핑 (4/28 리셋 후 21종목) ──────────────────────────
 # 보고서에서 사용하는 이름 → yfinance 심볼
 TICKER_YF = {
     'NVDA': 'NVDA', 'MSFT': 'MSFT', 'GOOGL': 'GOOGL', 'TSLA': 'TSLA',
-    'PLTR': 'PLTR', 'CVX': 'CVX', 'XOM': 'XOM', 'UNH': 'UNH',
-    'WRB': 'WRB', 'QCOM': 'QCOM', 'BOTZ': 'BOTZ', 'SLV': 'SLV',
+    'XOM': 'XOM', 'WRB': 'WRB', 'BOTZ': 'BOTZ', 'SLV': 'SLV',
+    'GLD': 'GLD', 'IWM': 'IWM', 'LMT': 'LMT', 'WMB': 'WMB', 'XLE': 'XLE',
     'BAYN.DE': 'BAYN.DE', 'BAYN': 'BAYN.DE',
     '1377.T': '1377.T', '1377': '1377.T',
     '005930.KS': '005930.KS', '005930': '005930.KS', '삼성전자': '005930.KS',
     '000660.KS': '000660.KS', '000660': '000660.KS', 'SK하이닉스': '000660.KS',
+    '005380.KS': '005380.KS', '005380': '005380.KS', '현대차': '005380.KS',
     '035420.KS': '035420.KS', '035420': '035420.KS', 'NAVER': '035420.KS',
     '195940.KQ': '195940.KQ', '195940': '195940.KQ', 'HK이노엔': '195940.KQ',
     '429760.KS': '429760.KS', '429760': '429760.KS',
@@ -39,21 +40,21 @@ TICKER_YF = {
 
 # yfinance 심볼 → 통화 기호
 CURRENCY = {
-    'NVDA': '$', 'MSFT': '$', 'GOOGL': '$', 'TSLA': '$', 'PLTR': '$',
-    'CVX': '$', 'XOM': '$', 'UNH': '$', 'WRB': '$', 'QCOM': '$',
-    'BOTZ': '$', 'SLV': '$',
+    'NVDA': '$', 'MSFT': '$', 'GOOGL': '$', 'TSLA': '$',
+    'XOM': '$', 'WRB': '$', 'BOTZ': '$', 'SLV': '$',
+    'GLD': '$', 'IWM': '$', 'LMT': '$', 'WMB': '$', 'XLE': '$',
     'BAYN.DE': '€', '1377.T': '¥',
-    '005930.KS': '₩', '000660.KS': '₩',
+    '005930.KS': '₩', '000660.KS': '₩', '005380.KS': '₩',
     '035420.KS': '₩', '195940.KQ': '₩', '429760.KS': '₩',
 }
 
 # yfinance 심볼 → 보고서에서 주로 쓰는 이름 (역매핑)
 YF_TO_REPORT = {
     'NVDA': 'NVDA', 'MSFT': 'MSFT', 'GOOGL': 'GOOGL', 'TSLA': 'TSLA',
-    'PLTR': 'PLTR', 'CVX': 'CVX', 'XOM': 'XOM', 'UNH': 'UNH',
-    'WRB': 'WRB', 'QCOM': 'QCOM', 'BOTZ': 'BOTZ', 'SLV': 'SLV',
+    'XOM': 'XOM', 'WRB': 'WRB', 'BOTZ': 'BOTZ', 'SLV': 'SLV',
+    'GLD': 'GLD', 'IWM': 'IWM', 'LMT': 'LMT', 'WMB': 'WMB', 'XLE': 'XLE',
     'BAYN.DE': 'BAYN.DE', '1377.T': '1377.T',
-    '005930.KS': '삼성전자', '000660.KS': 'SK하이닉스',
+    '005930.KS': '삼성전자', '000660.KS': 'SK하이닉스', '005380.KS': '현대차',
     '035420.KS': 'NAVER', '195940.KQ': 'HK이노엔', '429760.KS': '429760.KS',
 }
 

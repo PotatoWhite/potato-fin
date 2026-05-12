@@ -25,10 +25,11 @@ DB_PATH = STOCK_DIR / "portfolio.db"
 
 KST = timezone(timedelta(hours=9))
 
-# 시장별 종목
-KR_TICKERS = ['005930.KS', '000660.KS', '035420.KS', '195940.KQ', '429760.KS']
-US_TICKERS = ['NVDA', 'MSFT', 'GOOGL', 'TSLA', 'PLTR', 'CVX', 'XOM',
-              'UNH', 'WRB', 'QCOM', 'BOTZ', 'SLV']
+# 시장별 종목 (4/28 리셋 후 21종목)
+KR_TICKERS = ['005930.KS', '000660.KS', '005380.KS',
+              '035420.KS', '195940.KQ', '429760.KS']
+US_TICKERS = ['NVDA', 'MSFT', 'GOOGL', 'TSLA', 'XOM', 'WRB', 'BOTZ', 'SLV',
+              'GLD', 'IWM', 'LMT', 'WMB', 'XLE']
 JP_TICKERS = ['1377.T']
 DE_TICKERS = ['BAYN.DE']
 

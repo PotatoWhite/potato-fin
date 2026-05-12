@@ -147,12 +147,13 @@ def scan_naver_kr(tickers: list[str], days_ahead: int = 14) -> list[dict]:
 def main():
     tickers = get_portfolio_tickers()
     if not tickers:
-        # fallback: 하드코드 (19종목)
+        # fallback: 하드코드 (4/28 리셋 후 21종목)
         tickers = [
-            "005930.KS", "000660.KS", "035420.KS", "195940.KQ", "429760.KS",
+            "005930.KS", "000660.KS", "005380.KS",
+            "035420.KS", "195940.KQ", "429760.KS",
             "1377.T", "BAYN.DE",
-            "GOOGL", "MSFT", "NVDA", "TSLA", "UNH", "WRB", "PLTR", "QCOM",
-            "XOM", "CVX", "SLV", "BOTZ",
+            "BOTZ", "GLD", "GOOGL", "IWM", "LMT", "MSFT", "NVDA",
+            "SLV", "TSLA", "WMB", "WRB", "XLE", "XOM",
         ]
 
     results = scan_yfinance(tickers) + scan_naver_kr(tickers)

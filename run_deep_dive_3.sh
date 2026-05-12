@@ -103,7 +103,7 @@ try:
             break
 except Exception:
     # Fallback
-    for fb in ["TSLA", "NVDA", "PLTR"]:
+    for fb in ["TSLA", "NVDA", "LMT"]:
         if fb not in [s[0] for s in selected]:
             selected.append((fb, "max_vol_fallback"))
             break
@@ -155,6 +155,7 @@ ${SELECTED_TICKERS}
 - portfolio_config.json (risk_profile.single_trade_risk_pct 참조)
 - docs/vertical_map.md (종목별 공급망/경쟁사 — 빠른 참조용)
 - .claude/agents/potato-{pm,quant,architect,trader,devil}.md (각 페르소나 톤)
+- **메르 컨텍스트**: 각 종목 시작 전 \`Bash("$STOCK_DIR/.venv/bin/python3 mer_context.py --ticker <티커> --days 90")\` 호출하여 메르 언급 확인. 있으면 민지/태경 섹션에 1~2줄 인용. 없으면 생략.
 
 ## 출력
 보고서 파일: $REPORT_FILE

@@ -21,10 +21,11 @@ from pathlib import Path
 
 STOCK_DIR = Path(__file__).resolve().parent
 
-# ── 보유 종목 ──────────────────────────────────────────────
-TICKERS_US = ["NVDA", "MSFT", "GOOGL", "TSLA", "PLTR", "CVX", "XOM",
-              "UNH", "WRB", "QCOM", "BOTZ", "SLV", "BAYN.DE", "1377.T"]
-TICKERS_KR = ["NAVER", "HK이노엔", "삼성전자", "SK하이닉스", "035420", "195940", "429760", "005930", "000660"]
+# ── 보유 종목 (4/28 리셋 후 21종목) ──────────────────────────
+TICKERS_US = ["NVDA", "MSFT", "GOOGL", "TSLA", "XOM", "WRB", "BOTZ", "SLV",
+              "GLD", "IWM", "LMT", "WMB", "XLE", "BAYN.DE", "1377.T"]
+TICKERS_KR = ["NAVER", "HK이노엔", "삼성전자", "SK하이닉스", "현대차",
+              "035420", "195940", "429760", "005930", "000660", "005380"]
 
 # ── US 보고서 필수 섹션 ────────────────────────────────────
 US_REQUIRED_SECTIONS = [

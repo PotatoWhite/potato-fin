@@ -115,7 +115,7 @@ if conflicts_log.exists():
                 continue
             recent_lines.append(d["line"])
             # 티커 언급 빈도
-            for tk in ["NVDA", "MSFT", "GOOGL", "TSLA", "UNH", "WRB", "PLTR", "QCOM", "XOM", "CVX", "SLV", "BOTZ", "005930", "000660", "035420", "195940", "429760", "1377", "BAYN"]:
+            for tk in ["NVDA", "MSFT", "GOOGL", "TSLA", "WRB", "XOM", "SLV", "BOTZ", "GLD", "IWM", "LMT", "WMB", "XLE", "005930", "000660", "005380", "035420", "195940", "429760", "1377", "BAYN"]:
                 if tk in d["line"]:
                     ticker_conflicts[tk] += 1
         except Exception:

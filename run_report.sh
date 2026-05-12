@@ -62,42 +62,10 @@ print(format_thesis_summary())
 " 2>/dev/null || echo "투자 테제 없음")
 echo "$(date): 테제: ${#THESIS_SUMMARY}자" >> "$LOG_FILE"
 
-# 5.6단계: 메르 블로그 RSS 피드 (최근 3일 글 제목 수집)
-echo "$(date): 메르 블로그 RSS 수집" >> "$LOG_FILE"
-MER_BLOG=$("$PYTHON" -c "
-import urllib.request, xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
-try:
-    url = 'https://rss.blog.naver.com/ranto28'
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        data = resp.read().decode('utf-8')
-    root = ET.fromstring(data)
-    items = root.find('channel').findall('item')
-    kst = timezone(timedelta(hours=9))
-    cutoff = datetime.now(kst) - timedelta(days=3)
-    results = []
-    for item in items:
-        title = item.find('title').text or ''
-        pub_str = item.find('pubDate').text if item.find('pubDate') is not None else ''
-        try:
-            from email.utils import parsedate_to_datetime
-            pub_dt = parsedate_to_datetime(pub_str)
-            if pub_dt < cutoff:
-                continue
-            date_str = pub_dt.strftime('%m/%d %H:%M')
-        except:
-            date_str = ''
-        results.append(f'- [{date_str}] {title}')
-    if results:
-        print('메르의 블로그 (blog.naver.com/ranto28) 최근 글:')
-        print('\n'.join(results))
-    else:
-        print('메르 블로그: 최근 3일 내 글 없음')
-except Exception as e:
-    print(f'메르 블로그 RSS 수집 실패: {e}')
-" 2>/dev/null || echo "메르 블로그 RSS 수집 실패")
-echo "$MER_BLOG" >> "$LOG_FILE"
+# 5.6단계: 메르 블로그 컨텍스트 (mer_monitor.py가 cron으로 누적, 본문+요약+티커 분석)
+echo "$(date): 메르 컨텍스트 로드" >> "$LOG_FILE"
+MER_CTX=$("$PYTHON" "$STOCK_DIR/mer_context.py" --days 14 --limit 20 2>/dev/null || echo "## 메르 컨텍스트\n\n_(DB 조회 실패)_")
+echo "$(date): 메르 컨텍스트: ${#MER_CTX}자" >> "$LOG_FILE"
 
 # 5.7단계: 보고서 작성 전 가격 사전검증 (가격 오염 종목 사전 경고)
 echo "$(date): 사전 가격 검증 실행" >> "$LOG_FILE"
@@ -174,7 +142,7 @@ Finnhub 뉴스 센티먼트가 [6]에 포함되어 있다. 스캔들 감지 종�
 docs/report_template_us.md의 '숨은 진주' 템플릿에 따라 4개 인덱스별로 숨은 진주를 발굴하라.
 
 ★★★ 숨은 진주 필수 규칙 ★★★
-- 보유 종목(005930.KS,000660.KS,035420.KS,195940.KQ,429760.KS,1377.T,BAYN.DE,BOTZ,CVX,GOOGL,MSFT,NVDA,PLTR,QCOM,SLV,TSLA,UNH,WRB,XOM) 절대 포함 금지
+- 보유 종목(005930.KS,000660.KS,005380.KS,035420.KS,195940.KQ,429760.KS,1377.T,BAYN.DE,BOTZ,GLD,GOOGL,IWM,LMT,MSFT,NVDA,SLV,TSLA,WMB,WRB,XLE,XOM) 절대 포함 금지
 - 시총 \$100B 이상 대형주(AAPL,AMZN,META,GOOG,TSMC,AVGO 등) 포함 금지
 - 섹터 ETF(XLK,XLB,XLP,IWM 등) 포함 금지 — 개별 종목 티커만 제시
 - \"다수\", \"여러 종목\" 같은 모호한 표현 금지 — 반드시 구체적 티커+시총+수치
@@ -302,14 +270,19 @@ schedule_override.json 파일을 업데이트하라.
 아래는 금융 전문가 '메르'(삼성/GE 위험관리 출신, 금융사 임원, 30조원+ 투융자 검토 경력)의 최근 블로그 글 제목이다.
 
 ★ 토픽 선별 기준 (WebSearch 낭비 방지) ★
-아래 토픽 중 다음 조건을 모두 충족하는 것만 추가 조사하라:
-1. 보고서의 다른 섹션(경제지표 대시보드, 매크로 요약 등)에서 이미 다루지 않는 새로운 각도의 정보
-2. 보유 종목 또는 포트폴리오에 직접적 영향이 있는 주제 (예: HBM→NVDA, 국채매각→금리/환율)
-3. 아직 시장이 완전히 소화하지 않은 진행 중인 이슈 (발표 후 2일+ 경과한 경제지표 결과는 제외)
-제외 대상: 이미 발표된 경제지표 해석, 중복 제목, 건강/음식/부동산 등 비관련 주제, 한국 내수 부동산
-선별 결과 0건이면 이 섹션 자체를 생략하라. 최대 2건만 추가 WebSearch.
-메르 블로그 원문을 인용하지 말고 독자적으로 조사한 내용만 작성할 것.
-$MER_BLOG
+=== 메르 블로그 컨텍스트 (참고 source, 2차 데이터) ===
+메르(blog.naver.com/ranto28)는 신뢰도 있는 한국 재테크 블로거로 사용자가 분석에 참고로 사용.
+mer_monitor.py가 cron(08:00/18:00)으로 누적, 각 글의 본문을 Haiku로 요약+티커+톤+확신도 추출한 결과.
+
+활용 원칙:
+1. **참고만, 매매 근거는 데이터 우선** — 메르 의견은 narrative weight ≈ 뉴스 1건 분량, 종합 점수 4축에 직접 가중치 X
+2. **시간순 최신=신뢰도↑** — 같은 토픽이라도 더 최근 글의 stance가 우선
+3. **메르 stance + 메르 confidence 결합 가중** — bullish×conviction≥7 = 의미있는 시그널, neutral/conviction<5 = 정보 수준
+4. **종목 매핑 활용** — 보유 19종목 중 메르가 직접 언급한 종목은 보고서 해당 섹션에 1~2줄 인용 ("메르 4/27: ...")
+5. **포트 외 종목** — 메르가 언급한 포트 외 종목 중 시그널 강하면 '숨은 진주' 후보 섹션에서 검토
+6. **WebSearch와 cross-check** — 메르 주장이 사실이면 최근 뉴스/데이터에서 확인 가능. 확인 안되면 narrative만 인용
+
+$MER_CTX
 
 === Tier 1 장중 감시 누적 데이터 ===
 아래는 news_monitor.py가 30분 간격으로 수집한 오늘의 누적 데이터이다.
