@@ -221,8 +221,8 @@ def get_upcoming_earnings():
     today = datetime.now(kst).date()
     upcoming = []
 
-    # ETF는 실적 없음
-    etf_tickers = {"BOTZ", "SLV", "429760.KS"}
+    # ETF는 실적 없음 (yfinance fundamentals 404 → 매 cycle 노이즈 누적 차단)
+    etf_tickers = {"BOTZ", "SLV", "GLD", "IWM", "XLE", "429760.KS"}
     for ticker in TICKER_MARKET:
         if any(ticker.endswith(s) for s in NON_US_SUFFIXES):
             continue
