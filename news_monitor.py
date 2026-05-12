@@ -17,6 +17,9 @@ Usage:
 import json
 import logging
 import os
+import re
+import shutil
+import sqlite3
 import subprocess
 import sys
 import time
@@ -308,6 +311,92 @@ def send_telegram(message, parse_mode="Markdown"):
         urllib.request.urlopen(req, timeout=10)
     except Exception as e:
         logging.error(f"텔레그램 전송 실패: {e}")
+
+
+def _has_hangul(s: str) -> bool:
+    return any("가" <= c <= "힣" for c in s)
+
+
+def translate_headlines(headlines):
+    """영어 헤드라인 → 한국어. Haiku 배치 호출 + portfolio.db 캐시.
+
+    Returns: {원문: 한국어} dict. 한국어/빈 헤드라인은 원문 그대로.
+    실패 시 원문 fallback.
+    """
+    if not headlines:
+        return {}
+
+    unique = list(dict.fromkeys(h for h in headlines if h))
+    result = {h: h for h in unique}
+    todo = [h for h in unique if not _has_hangul(h)]
+    if not todo:
+        return result
+
+    db_path = os.path.join(BASE_DIR, "portfolio.db")
+    con = sqlite3.connect(db_path)
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS news_translation (
+            original TEXT PRIMARY KEY,
+            korean   TEXT,
+            created  TEXT
+        )
+        """
+    )
+
+    uncached = []
+    for h in todo:
+        row = con.execute(
+            "SELECT korean FROM news_translation WHERE original = ?", (h,)
+        ).fetchone()
+        if row and row[0]:
+            result[h] = row[0]
+        else:
+            uncached.append(h)
+
+    if not uncached:
+        con.close()
+        return result
+
+    numbered = "\n".join(f"{i+1}. {h}" for i, h in enumerate(uncached))
+    prompt = (
+        "다음 영어 주식 뉴스 헤드라인들을 한국어로 자연스럽게 번역하라. "
+        "번호 보존, 한 줄당 하나. 번역만 출력 (부연 설명/원문/따옴표 금지). "
+        "고유명사/티커는 원문 유지.\n\n"
+        f"{numbered}"
+    )
+
+    claude = shutil.which("claude") or "/home/bravopotato/.npm-global/bin/claude"
+    try:
+        r = subprocess.run(
+            [claude, "--model", "haiku", "--print",
+             "--dangerously-skip-permissions", prompt],
+            capture_output=True, text=True, timeout=60,
+        )
+        out = (r.stdout or "").strip()
+        if r.returncode == 0 and out:
+            lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
+            now = datetime.now().isoformat()
+            for h, ln in zip(uncached, lines):
+                m = re.match(r"^\s*\d+[.)]\s*(.+)$", ln)
+                trans = (m.group(1) if m else ln).strip().strip('"').strip("'")
+                if trans:
+                    result[h] = trans
+                    con.execute(
+                        "INSERT OR REPLACE INTO news_translation (original, korean, created) VALUES (?, ?, ?)",
+                        (h, trans, now),
+                    )
+            con.commit()
+        else:
+            logging.warning(f"headline 번역 응답 비어있음 (rc={r.returncode}): {(r.stderr or '')[:200]}")
+    except subprocess.TimeoutExpired:
+        logging.warning("headline 번역 timeout — 원문 사용")
+    except Exception as e:
+        logging.warning(f"headline 번역 실패: {e}")
+    finally:
+        con.close()
+
+    return result
 
 
 def trigger_event_flash(trigger_data):
@@ -897,6 +986,17 @@ def run_monitor():
                 watch_alerts.append(line)
             logging.info(f"가격 알림: {ticker} {alert_msg}")
 
+    # 텔레그램에 노출될 top 헤드라인만 모아 일괄 번역 (Haiku 1회 호출)
+    headlines_to_translate = []
+    for ticker, ndata in news.items():
+        if ticker.startswith("_"):
+            continue
+        if ndata.get("urgent"):
+            headlines_to_translate.append(ndata["urgent"][0].get("headline", ""))
+        if ndata.get("positive"):
+            headlines_to_translate.append(ndata["positive"][0].get("headline", ""))
+    translations = translate_headlines(headlines_to_translate) if headlines_to_translate else {}
+
     # 뉴스 이상 → 임팩트 분류
     for ticker, ndata in news.items():
         if ticker.startswith("_"):
@@ -918,9 +1018,10 @@ def run_monitor():
             triggers.append(trigger)
 
             top = ndata["urgent"][0]
+            head_kr = translations.get(top["headline"], top["headline"])
             url_line = f"\n   📎 {top['url']}" if top.get("url") else ""
             loss_alerts.append(
-                f"🔴 *{name}* — {top['headline'][:45]}\n   악재: {top['keyword']}{url_line}"
+                f"🔴 *{name}* — {head_kr[:60]}\n   악재: {top['keyword']}{url_line}"
             )
             logging.info(f"손실 위험: {ticker} {top['keyword']}")
 
@@ -938,9 +1039,10 @@ def run_monitor():
             triggers.append(trigger)
 
             top = ndata["positive"][0]
+            head_kr = translations.get(top["headline"], top["headline"])
             url_line = f"\n   📎 {top['url']}" if top.get("url") else ""
             gain_alerts.append(
-                f"🟢 *{name}* — {top['headline'][:45]}\n   호재: {top['keyword']}{url_line}"
+                f"🟢 *{name}* — {head_kr[:60]}\n   호재: {top['keyword']}{url_line}"
             )
             logging.info(f"수익 기회: {ticker} {top['keyword']}")
 
