@@ -11,6 +11,13 @@
 
 set -uo pipefail  # -e 는 의도적으로 뺌 — curl 실패가 다음 채널 점검을 막으면 안 됨.
 
+# 일요일(DOW=0): 보고서 스케줄 없음 → no-op (허위경보 방지)
+DOW=$(date +%w)
+if [[ "$DOW" == "0" ]]; then
+    echo "[$(date -Iseconds)] Sunday — heartbeat check skipped (no reports scheduled)"
+    exit 0
+fi
+
 STOCK_DIR="${STOCK_DIR:-/home/bravopotato/Spaces/finspace/potato-fin}"
 LOG_DIR="${LOG_DIR:-$HOME/logs/stock-monitor}"
 STALE_SECONDS="${STALE_SECONDS:-90000}"   # 25시간. 하루 1회 스케줄 + 1시간 버퍼.

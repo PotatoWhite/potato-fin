@@ -1226,7 +1226,8 @@ def format_thesis_summary() -> str:
         judgment = tdata.get('judgment', '?')
         direction = tdata.get('direction', '?')
         total_score = tdata.get('scores', {}).get('total', 0)
-        pred_5d = tdata.get('predictions', {}).get('5d', {}).get('price', '?')
+        _preds = tdata.get('predictions')
+        pred_5d = (_preds if isinstance(_preds, dict) else {}).get('5d', {}).get('price', '?')
         catalyst = tdata.get('key_catalyst', '')
         labels = tdata.get('special_labels', [])
 
